@@ -27,7 +27,7 @@ function sheetInlineIcon(type) {
 }
 
 // TradeLedger stable build: existing IndexedDB data preserved.
-const TRADELEDGER_BUILD = "20261124-tradebook-v76-google-oauth";
+const TRADELEDGER_BUILD = "20261123-tradebook-v69-full-navigation";
 
 const DB_NAME = "TradeLedgerDB";
 const SETTINGS_KEY = "TradeLedgerColumnSettings";
@@ -5642,7 +5642,7 @@ async function refreshVerifiedUser(){
    FIREBASE EMAIL ACTION FLOWS
    No Cloud Functions / billing required.
 ========================================== */
-const TRADEBOOK_APP_URL = "https://tradebook-collab.github.io/Trade-Book/";
+const TRADEBOOK_APP_URL = "https://eldhosaliyas2009-lgtm.github.io/Trade-Book/";
 const TRADEBOOK_ACTION_URL = TRADEBOOK_APP_URL + "verify.html";
 
 function firebaseActionSettings(){
