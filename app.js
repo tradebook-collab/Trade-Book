@@ -27,7 +27,7 @@ function sheetInlineIcon(type) {
 }
 
 // TradeLedger stable build: existing IndexedDB data preserved.
-const TRADELEDGER_BUILD = "20261123-tradebook-v69-full-navigation";
+const TRADELEDGER_BUILD = "20261124-tradebook-v76-google-oauth";
 
 const DB_NAME = "TradeLedgerDB";
 const SETTINGS_KEY = "TradeLedgerColumnSettings";
@@ -38,7 +38,7 @@ const REPORT_SETTINGS_KEY = "TradeLedgerReportSettings";
 const BROKER_DATA_KEY = "TradeLedgerBrokerTransactions";
 
 const GOOGLE_CLIENT_ID =
-  "396461936533-4ku2jc0qecn82ge1n2ohguq9ih1p5n68.apps.googleusercontent.com";
+  "1085762739616-cbkh2us7v8arnkijb0bbr2dumtqcrn8k.apps.googleusercontent.com";
 
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER_NAME = "TradeLedger Backups";
