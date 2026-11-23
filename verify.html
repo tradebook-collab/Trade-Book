@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1220">
+  <title>TradeBook — Verify</title>
+  <link rel="stylesheet" href="style.css?v=20261124-tradebook-v75-firebase-verification-fixed">
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js?v=20261124-tradebook-v75-firebase-verification-fixed"></script>
+</head>
+<body class="auth-action-body">
+  <main class="auth-action-page">
+    <div class="auth-action-card">
+      <div class="auth-brand"><img src="icon-192.png" alt="TradeBook"><h1>TradeBook</h1><p>Trading Journal</p></div>
+      <div id="loadingState">Checking your TradeBook request…</div>
+      <section id="verifyState" class="hidden">
+        <h2>Verify Your Email</h2>
+        <p>Click the button below to complete email verification.</p>
+        <button id="verifyBtn" class="primary-btn full-btn" type="button">Complete Verification</button>
+      </section>
+      <section id="resetState" class="hidden">
+        <h2>Reset Your Password</h2>
+        <p id="resetEmailText" class="muted-text"></p>
+        <label>New Password<div class="password-input"><input id="newPassword" type="password" autocomplete="new-password"></div></label>
+        <label>Confirm New Password<div class="password-input"><input id="confirmPassword" type="password" autocomplete="new-password"></div></label>
+        <div class="password-rules"><strong>Password must contain:</strong><span id="rLength">○ Minimum 8 characters</span><span id="rUpper">○ 1 uppercase letter</span><span id="rLower">○ 1 lowercase letter</span><span id="rNumber">○ 1 number</span><span id="rSpecial">○ 1 special character</span></div>
+        <button id="resetBtn" class="primary-btn full-btn" type="button">Reset Password</button>
+      </section>
+      <div id="successState" class="hidden"><h2 id="successTitle">Success</h2><p id="successMessage"></p><button id="continueBtn" class="primary-btn full-btn" type="button">Go to TradeBook</button></div>
+      <div id="errorState" class="hidden"><h2>Link Not Valid</h2><p id="errorMessage"></p><button class="secondary-btn full-btn" type="button" onclick="location.href='index.html'">Back to TradeBook</button></div>
+    </div>
+  </main>
+<script>
+(() => {
+  const cfg = window.TRADEBOOK_FIREBASE_CONFIG || {};
+  if (!cfg.apiKey || !cfg.authDomain || !cfg.projectId || !cfg.appId) {
+    showError('TradeBook Firebase configuration is missing.'); return;
+  }
+  if (!firebase.apps.length) firebase.initializeApp(cfg);
+  const auth = firebase.auth();
+  const params = new URLSearchParams(location.search);
+  const mode = params.get('mode');
+  const code = params.get('oobCode');
+  const continueUrl = params.get('continueUrl');
+  const goBack = () => { location.href = continueUrl ? safeContinueUrl(continueUrl) : './index.html'; };
+  const safeContinueUrl = (value) => {
+    try { const u = new URL(value); if (u.origin === 'https://tradebook-collab.github.io') return u.href; } catch (_) {}
+    return './index.html';
+  };
+  function show(id){ document.querySelectorAll('section,#loadingState,#successState,#errorState').forEach(el=>el.classList.add('hidden')); document.getElementById(id)?.classList.remove('hidden'); }
+  function showError(msg){ document.getElementById('loadingState')?.classList.add('hidden'); document.getElementById('errorState')?.classList.remove('hidden'); document.getElementById('errorMessage').textContent=msg; }
+  function showSuccess(title,msg){ document.getElementById('successTitle').textContent=title; document.getElementById('successMessage').textContent=msg; show('successState'); }
+  function rules(p){ return {length:p.length>=8,upper:/[A-Z]/.test(p),lower:/[a-z]/.test(p),number:/\d/.test(p),special:/[^A-Za-z0-9]/.test(p)}; }
+  function updateRules(){ const p=document.getElementById('newPassword').value, r=rules(p); [['rLength',r.length,'Minimum 8 characters'],['rUpper',r.upper,'1 uppercase letter'],['rLower',r.lower,'1 lowercase letter'],['rNumber',r.number,'1 number'],['rSpecial',r.special,'1 special character']].forEach(([id,ok,text])=>{document.getElementById(id).textContent=(ok?'✓ ':'○ ')+text; document.getElementById(id).classList.toggle('rule-valid',ok);}); }
+  async function init(){
+    if (!code || !['verifyEmail','resetPassword'].includes(mode)) { showError('This TradeBook link is missing required information.'); return; }
+    try {
+      if (mode === 'verifyEmail') {
+        await auth.checkActionCode(code);
+        show('verifyState');
+        document.getElementById('verifyBtn').onclick = async () => {
+          const btn=document.getElementById('verifyBtn'); btn.disabled=true;
+          try { await auth.applyActionCode(code); showSuccess('Email Verified','Your email has been verified successfully. Your TradeBook account is ready.'); }
+          catch(e){ btn.disabled=false; showError(e?.message || 'This verification link is invalid or expired.'); }
+        };
+      } else {
+        const email=await auth.verifyPasswordResetCode(code);
+        document.getElementById('resetEmailText').textContent='Resetting password for '+email;
+        show('resetState');
+        document.getElementById('newPassword').addEventListener('input',updateRules); updateRules();
+        document.getElementById('resetBtn').onclick=async()=>{
+          const p=document.getElementById('newPassword').value, cp=document.getElementById('confirmPassword').value;
+          const r=rules(p);
+          if(!Object.values(r).every(Boolean)){ showError('Password does not meet all required conditions.'); return; }
+          if(p!==cp){ showError('Passwords do not match.'); return; }
+          const btn=document.getElementById('resetBtn'); btn.disabled=true;
+          try { await auth.confirmPasswordReset(code,p); showSuccess('Password Reset Complete','Your password has been reset successfully. You can now log in to TradeBook.'); }
+          catch(e){ btn.disabled=false; showError(e?.message || 'The password reset link is invalid or expired.'); }
+        };
+      }
+    } catch(e) { showError(e?.message || 'This TradeBook link is invalid or expired.'); }
+  }
+  document.getElementById('continueBtn').onclick=goBack;
+  init();
+})();
+</script>
+</body>
+</html>
