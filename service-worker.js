@@ -1,11 +1,11 @@
-/* TradeBook PWA Service Worker - v74 */
-const CACHE_NAME = "tradebook-forgot-otp-v1";
+/* TradeBook PWA Service Worker - v71 */
+const CACHE_NAME = "tradebook-v71-navigation-settings";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20261123-tradebook-forgot-otp-v1",
-  "./app.js?v=20261123-tradebook-forgot-otp-v1",
-  "./firebase-config.js?v=20261123-tradebook-forgot-otp-v1",
+  "./style.css?v=20261123-tradebook-v71-navigation-settings",
+  "./app.js?v=20261123-tradebook-v71-navigation-settings",
+  "./firebase-config.js?v=20261123-tradebook-v71-navigation-settings",
   "./verify.html",
   "./manifest.json",
   "./icon-192.png",

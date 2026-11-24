@@ -27,7 +27,7 @@ function sheetInlineIcon(type) {
 }
 
 // TradeLedger stable build: existing IndexedDB data preserved.
-const TRADELEDGER_BUILD = "20261124-tradebook-v78-settings-otp-ready";
+const TRADELEDGER_BUILD = "20261123-tradebook-v69-full-navigation";
 
 const DB_NAME = "TradeLedgerDB";
 const SETTINGS_KEY = "TradeLedgerColumnSettings";
@@ -43,12 +43,6 @@ const GOOGLE_CLIENT_ID =
 const DRIVE_SCOPE = "https://www.googleapis.com/auth/drive.file";
 const DRIVE_FOLDER_NAME = "TradeLedger Backups";
 const DRIVE_BACKUP_NAME = "TradeLedger-Backup.json";
-const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
-let gmailTokenClient = null;
-let gmailAccessToken = null;
-let forgotOtpValue = null;
-let forgotOtpExpiresAt = 0;
-let forgotOtpTimerHandle = null;
 
 let db = null;
 let trades = [];
@@ -5645,201 +5639,10 @@ async function refreshVerifiedUser(){
 }
 
 /* ==========================================
-   SETTINGS FORGOT PASSWORD - BREVO OTP
-   Brevo is used only for Settings -> Forgot Password.
-   The API request uses the Brevo transactional email endpoint.
-========================================== */
-function getBrevoConfig(){
-  const cfg=window.TRADEBOOK_BREVO_CONFIG||{};
-  return {
-    apiKey:String(cfg.apiKey||'').trim(),
-    senderEmail:String(cfg.senderEmail||'').trim(),
-    senderName:String(cfg.senderName||'TradeBook').trim(),
-    endpoint:String(cfg.endpoint||'https://api.brevo.com/v3/smtp/email').trim()
-  };
-}
-
-function buildBrevoOtpHtml(otp){
-  return `<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f5f7fb;padding:24px;color:#182033">
-    <div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:28px">
-      <h2 style="margin:0 0 12px">TradeBook Password Reset</h2>
-      <p>Your TradeBook password reset OTP is:</p>
-      <div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px 10px;background:#f1f4f9;border-radius:12px">${otp}</div>
-      <p style="margin-top:20px">This code is valid for <strong>2 minutes</strong>.</p>
-      <p style="font-size:13px;color:#667085">If you did not request this code, you can safely ignore this email.</p>
-    </div>
-  </body></html>`;
-}
-
-async function sendOtpThroughBrevoApi(to,otp){
-  const cfg=getBrevoConfig();
-  if(!cfg.apiKey || cfg.apiKey==='PASTE_BREVO_API_KEY_HERE') throw new Error('Brevo API key is not configured. Add your Brevo API key in brevo-config.js.');
-  if(!cfg.senderEmail || cfg.senderEmail==='PASTE_VERIFIED_SENDER_EMAIL_HERE') throw new Error('Brevo sender email is not configured. Add your verified Brevo sender email in brevo-config.js.');
-
-  const payload={
-    sender:{name:cfg.senderName,email:cfg.senderEmail},
-    to:[{email:to}],
-    subject:'TradeBook Password Reset OTP',
-    textContent:`Your TradeBook password reset OTP is ${otp}.\n\nThis code is valid for 2 minutes. If you did not request this code, ignore this email.`,
-    htmlContent:buildBrevoOtpHtml(otp)
-  };
-
-  let response;
-  try{
-    response=await fetch(cfg.endpoint,{
-      method:'POST',
-      headers:{'accept':'application/json','api-key':cfg.apiKey,'content-type':'application/json'},
-      body:JSON.stringify(payload)
-    });
-  }catch(error){
-    throw new Error('Brevo OTP request failed. Check the Brevo API setup and browser network access.');
-  }
-
-  if(!response.ok){
-    let detail='';
-    try{
-      const data=await response.json();
-      detail=data?.message||data?.code||JSON.stringify(data);
-    }catch(e){ try{detail=await response.text();}catch(_){} }
-    throw new Error('Brevo OTP could not be sent. '+detail);
-  }
-  return response.json();
-}
-
-function generateForgotOtp(){ return String(Math.floor(100000+Math.random()*900000)); }
-function clearForgotOtpTimer(){ if(forgotOtpTimerHandle){clearInterval(forgotOtpTimerHandle);forgotOtpTimerHandle=null;} }
-function startForgotOtpTimer(){
-  clearForgotOtpTimer();
-  const tick=()=>{
-    const remaining=Math.max(0,forgotOtpExpiresAt-Date.now());
-    const seconds=Math.ceil(remaining/1000);
-    const min=String(Math.floor(seconds/60)).padStart(2,'0');
-    const sec=String(seconds%60).padStart(2,'0');
-    if($('forgotOtpTimer')) $('forgotOtpTimer').textContent=`Code expires in ${min}:${sec}`;
-    if(remaining<=0){
-      clearForgotOtpTimer(); forgotOtpValue=null; forgotOtpExpiresAt=0;
-      if($('forgotOtpTimer')) $('forgotOtpTimer').textContent='Code expired. Please resend a new code.';
-      const verifyBtn=$('forgotFlowVerifyOtpBtn'); if(verifyBtn) verifyBtn.disabled=true;
-    } else {
-      const verifyBtn=$('forgotFlowVerifyOtpBtn'); if(verifyBtn) verifyBtn.disabled=false;
-    }
-  };
-  tick(); forgotOtpTimerHandle=setInterval(tick,250);
-}
-function clearForgotOtpInputs(){ document.querySelectorAll('.forgot-otp-box').forEach(el=>el.value=''); }
-function getForgotOtpInputValue(){ return [...document.querySelectorAll('.forgot-otp-box')].map(el=>el.value).join(''); }
-function showForgotFlowView(id){ document.querySelectorAll('#forgotPasswordFlowModal .forgot-flow-view').forEach(v=>v.classList.add('hidden')); $(id)?.classList.remove('hidden'); }
-function closeForgotPasswordFlow(){
-  clearForgotOtpTimer(); forgotOtpValue=null; forgotOtpExpiresAt=0; clearForgotOtpInputs();
-  $('forgotPasswordFlowModal')?.classList.add('hidden');
-  $('forgotFlowEmailError').textContent=''; $('forgotFlowOtpError').textContent=''; $('forgotFlowPasswordError').textContent='';
-  $('forgotFlowPasswordMatch').textContent=''; $('forgotFlowPasswordMatch').classList.remove('match');
-  if($('forgotNewPassword')) $('forgotNewPassword').value=''; if($('forgotConfirmPassword')) $('forgotConfirmPassword').value=''; updateForgotPasswordStrength();
-}
-function openForgotPasswordFlow(){
-  const email=auth?.currentUser?.email || tradeBookAuthUser?.email || '';
-  if(!email) return showToast('Please log in again to reset your password.');
-  $('forgotFlowEmail').value=email;
-  $('forgotPasswordFlowModal')?.classList.remove('hidden');
-  showForgotFlowView('forgotFlowEmailView');
-}
-async function sendForgotOtp(){
-  const email=($('forgotFlowEmail')?.value||'').trim();
-  $('forgotFlowEmailError').textContent='';
-  if(!email) return authError('forgotFlowEmailError','Registered email address is missing.');
-  // Invalidate any previous OTP before generating a new one.
-  forgotOtpValue=null;
-  forgotOtpExpiresAt=0;
-  clearForgotOtpTimer();
-  const otp=generateForgotOtp();
-  const btn=$('forgotFlowSendOtpBtn');
-  if(btn){btn.disabled=true;btn.textContent='Sending OTP...';}
-  try{
-    await sendOtpThroughBrevoApi(email,otp);
-    forgotOtpValue=otp;
-    forgotOtpExpiresAt=Date.now()+120000;
-    clearForgotOtpInputs();
-    showForgotFlowView('forgotFlowOtpView');
-    $('forgotFlowOtpError').textContent='';
-    if($('forgotFlowVerifyOtpBtn')) $('forgotFlowVerifyOtpBtn').disabled=false;
-    startForgotOtpTimer();
-    document.querySelector('.forgot-otp-box')?.focus();
-  }catch(error){
-    authError('forgotFlowEmailError',error.message||'Could not send OTP.');
-  }finally{
-    if(btn){btn.disabled=false;btn.textContent='Send OTP';}
-  }
-}
-async function resendForgotOtp(){
-  // A resend must invalidate the previous code immediately.
-  forgotOtpValue=null;
-  forgotOtpExpiresAt=0;
-  clearForgotOtpTimer();
-  clearForgotOtpInputs();
-  await sendForgotOtp();
-}
-function verifyForgotOtp(){
-  const entered=getForgotOtpInputValue();
-  $('forgotFlowOtpError').textContent='';
-  if(!forgotOtpValue || Date.now()>=forgotOtpExpiresAt) return authError('forgotFlowOtpError','OTP expired. Please tap Resend Code.');
-  if(entered!==forgotOtpValue) return authError('forgotFlowOtpError','Incorrect OTP. Please try again.');
-  clearForgotOtpTimer(); forgotOtpValue=null; forgotOtpExpiresAt=0;
-  showForgotFlowView('forgotFlowPasswordView');
-  updateForgotPasswordStrength(); $('forgotNewPassword')?.focus();
-}
-function updateForgotPasswordStrength(){
-  const p=$('forgotNewPassword')?.value||''; const r=passwordRulesState(p); const valid=Object.values(r).every(Boolean);
-  const wrap=document.querySelector('[data-rules-for="forgotNewPassword"]');
-  wrap?.querySelectorAll('[data-rule]').forEach(el=>{
-    const ok=Boolean(r[el.dataset.rule]); el.classList.toggle('rule-valid',ok); el.classList.toggle('rule-invalid',!ok);
-    const label=el.dataset.rule==='length'?'Minimum 8 characters':el.dataset.rule==='upper'?'1 uppercase letter':el.dataset.rule==='lower'?'1 lowercase letter':el.dataset.rule==='number'?'1 number':'1 special character';
-    el.textContent=(ok?'✓ ':'○ ')+label;
-  });
-  $('forgotStrengthBars')?.classList.toggle('all-valid',valid);
-  const st=$('forgotStrengthText'); if(st){st.textContent=valid?'Password strength: Good':'Password strength: Bad';st.classList.toggle('good',valid);st.classList.toggle('bad',!valid);}
-  const cp=$('forgotConfirmPassword')?.value||''; const match=valid && cp && p===cp;
-  const matchEl=$('forgotFlowPasswordMatch');
-  if(matchEl){matchEl.textContent=cp?(p===cp?'Passwords match.':'Passwords do not match.'):' ';matchEl.classList.toggle('match',Boolean(p===cp&&cp));}
-  const btn=$('forgotFlowChangePasswordBtn'); if(btn) btn.disabled=!(valid && cp && p===cp);
-}
-async function changeForgotPassword(){
-  $('forgotFlowPasswordError').textContent='';
-  const p=$('forgotNewPassword')?.value||'', cp=$('forgotConfirmPassword')?.value||'';
-  if(!passwordRuleValid(p)) return authError('forgotFlowPasswordError','Password does not meet all the required conditions.');
-  if(p!==cp) return authError('forgotFlowPasswordError','Passwords do not match.');
-  const user=auth?.currentUser;
-  if(!user) return authError('forgotFlowPasswordError','Your login session expired. Please log in again.');
-  const btn=$('forgotFlowChangePasswordBtn'); if(btn){btn.disabled=true;btn.textContent='Changing Password...';}
-  try{
-    await user.updatePassword(p);
-    showForgotFlowView('forgotFlowSuccessView');
-  }catch(error){
-    if(error?.code==='auth/requires-recent-login') authError('forgotFlowPasswordError','For security, Firebase needs a recent login. Please log in again and retry Forgot Password.');
-    else authError('forgotFlowPasswordError',friendlyAuthError(error));
-    updateForgotPasswordStrength();
-  }finally{ if(btn && !$('forgotFlowSuccessView')?.classList.contains('hidden')) btn.textContent='Change Password'; }
-}
-function setupForgotPasswordFlow(){
-  $('forgotFlowSendOtpBtn')?.addEventListener('click',sendForgotOtp);
-  $('forgotFlowVerifyOtpBtn')?.addEventListener('click',verifyForgotOtp);
-  $('forgotFlowResendBtn')?.addEventListener('click',resendForgotOtp);
-  $('forgotFlowChangePasswordBtn')?.addEventListener('click',changeForgotPassword);
-  $('closeForgotFlowBtn')?.addEventListener('click',closeForgotPasswordFlow);
-  $('forgotFlowDoneBtn')?.addEventListener('click',closeForgotPasswordFlow);
-  ['forgotNewPassword','forgotConfirmPassword'].forEach(id=>$(id)?.addEventListener('input',updateForgotPasswordStrength));
-  document.querySelectorAll('.forgot-otp-box').forEach((input,index)=>{
-    input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,1); if(input.value && index<5) document.querySelector(`[data-otp-index="${index+1}"]`)?.focus();});
-    input.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!input.value&&index>0) document.querySelector(`[data-otp-index="${index-1}"]`)?.focus();});
-    input.addEventListener('paste',e=>{e.preventDefault(); const text=(e.clipboardData?.getData('text')||'').replace(/\D/g,'').slice(0,6); [...document.querySelectorAll('.forgot-otp-box')].forEach((el,i)=>el.value=text[i]||''); document.querySelector(`[data-otp-index="${Math.min(text.length,5)}"]`)?.focus();});
-  });
-  updateForgotPasswordStrength();
-}
-
-/* ==========================================
    FIREBASE EMAIL ACTION FLOWS
    No Cloud Functions / billing required.
 ========================================== */
-const TRADEBOOK_APP_URL = "https://tradebook-collab.github.io/Trade-Book/";
+const TRADEBOOK_APP_URL = "https://eldhosaliyas2009-lgtm.github.io/Trade-Book/";
 const TRADEBOOK_ACTION_URL = TRADEBOOK_APP_URL + "verify.html";
 
 function firebaseActionSettings(){
@@ -5914,8 +5717,10 @@ function setupTopbarAndAccountNavigation(){
         }
         openPasswordModal(true);
       } else if(action === "forgot-password") {
+        const email = auth?.currentUser?.email || tradeBookAuthUser?.email || "";
         closeSettings();
-        openForgotPasswordFlow();
+        openAuthGate("authForgotView");
+        if($("authResetEmail")) $("authResetEmail").value = email;
       }
       return;
     }
@@ -6251,5 +6056,5 @@ function closePasswordModal(){ $('passwordModal')?.classList.add('hidden'); $('c
 $('closePasswordModal')?.addEventListener('click',closePasswordModal);
 
 // Start authentication once. The main TradeBook application starts only after a verified login.
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); },{once:true});
-else { setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); },{once:true});
+else { setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); }
