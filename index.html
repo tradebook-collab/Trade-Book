@@ -13,11 +13,11 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <title>TradeBook</title>
-  <link rel="stylesheet" href="style.css?v=20261123-tradebook-v71-firebase-email-actions">
+  <link rel="stylesheet" href="style.css?v=20261124-tradebook-forgot-otp-v3">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261123-tradebook-v71-firebase-email-actions"></script>
+  <script src="firebase-config.js?v=20261124-tradebook-forgot-otp-v3"></script>
 
 </head>
 <body>
@@ -107,6 +107,85 @@
       </label>
       <div id="profileEditError" class="auth-error"></div>
       <button id="saveProfileBtn" class="primary-btn full-btn" type="button">Save Profile</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS FORGOT PASSWORD: EMAIL -> OTP -> NEW PASSWORD -->
+  <div id="forgotPasswordFlowModal" class="modal hidden">
+    <div class="modal-card auth-modal-card forgot-flow-card">
+      <div class="modal-heading">
+        <h2 id="forgotFlowTitle">Forgot Password</h2>
+        <button id="closeForgotFlowBtn" class="icon-btn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div id="forgotFlowEmailView" class="forgot-flow-view">
+        <div class="forgot-flow-icon">✉</div>
+        <h3>Reset your password</h3>
+        <p class="muted-text center-text">Enter your registered email address. We’ll send a 6-digit OTP.</p>
+        <label>Email Address
+          <input id="forgotFlowEmail" type="email" autocomplete="email" readonly>
+        </label>
+        <button id="forgotFlowSendOtpBtn" class="primary-btn full-btn" type="button">Send OTP</button>
+        <div id="forgotFlowEmailError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowOtpView" class="forgot-flow-view hidden">
+        <div class="forgot-flow-icon">🔐</div>
+        <h3>Verify OTP</h3>
+        <p class="muted-text center-text">Enter the 6-digit code sent to your registered email.</p>
+        <div class="otp-box-row" id="forgotOtpBoxes">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="0" aria-label="OTP digit 1">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="1" aria-label="OTP digit 2">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="2" aria-label="OTP digit 3">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="3" aria-label="OTP digit 4">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="4" aria-label="OTP digit 5">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="5" aria-label="OTP digit 6">
+        </div>
+        <div id="forgotOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+        <div class="forgot-resend-row">Didn’t receive the code? <button id="forgotFlowResendBtn" class="text-btn" type="button">Resend Code</button></div>
+        <button id="forgotFlowVerifyOtpBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+        <div id="forgotFlowOtpError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowPasswordView" class="forgot-flow-view hidden">
+        <div class="forgot-flow-icon">🔒</div>
+        <h3>Set New Password</h3>
+        <p class="muted-text center-text">Your password must satisfy every requirement below.</p>
+        <label>New Password
+          <div class="password-input">
+            <input id="forgotNewPassword" type="password" autocomplete="new-password">
+            <button type="button" data-eye-for="forgotNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+          </div>
+        </label>
+        <div class="forgot-password-rules" data-rules-for="forgotNewPassword">
+          <strong>Password must contain:</strong>
+          <span data-rule="length">○ Minimum 8 characters</span>
+          <span data-rule="upper">○ 1 uppercase letter</span>
+          <span data-rule="lower">○ 1 lowercase letter</span>
+          <span data-rule="number">○ 1 number</span>
+          <span data-rule="special">○ 1 special character</span>
+        </div>
+        <div class="forgot-strength-wrap">
+          <div id="forgotStrengthBars" class="forgot-strength-bars"><span></span><span></span><span></span><span></span></div>
+          <div id="forgotStrengthText" class="forgot-strength-text bad">Password strength: Bad</div>
+        </div>
+        <label>Confirm Password
+          <div class="password-input">
+            <input id="forgotConfirmPassword" type="password" autocomplete="new-password">
+            <button type="button" data-eye-for="forgotConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+          </div>
+        </label>
+        <div id="forgotFlowPasswordMatch" class="forgot-match-text"></div>
+        <button id="forgotFlowChangePasswordBtn" class="primary-btn full-btn" type="button" disabled>Change Password</button>
+        <div id="forgotFlowPasswordError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowSuccessView" class="forgot-flow-view hidden">
+        <div class="forgot-success-icon">✓</div>
+        <h3>Password changed successfully</h3>
+        <p class="muted-text center-text">Your TradeBook password has been updated.</p>
+        <button id="forgotFlowDoneBtn" class="primary-btn full-btn" type="button">Done</button>
+      </div>
     </div>
   </div>
 
@@ -531,7 +610,8 @@
   <div id="viewModal" class="modal hidden"><div class="modal-card large-modal"><div class="modal-heading"><h2>Trade Details</h2><button type="button" id="closeViewBtn" class="icon-btn">×</button></div><div id="viewTradeContent"></div></div></div>
   <div id="confirmModal" class="modal hidden"><div class="modal-card"><h3 id="confirmTitle">Confirm Action</h3><p id="confirmMessage"></p><div class="form-actions"><button id="confirmYesBtn" class="danger-btn">Confirm</button><button id="confirmNoBtn" class="secondary-btn">Cancel</button></div></div></div>
   <div id="toast" class="toast" role="status"></div>
-  <script src="app.js?v=20261123-tradebook-v71-firebase-email-actions"></script>
+  <script src="brevo-config.js?v=20261125-tradebook-brevo-otp-v1"></script>
+  <script src="app.js?v=20261124-tradebook-forgot-otp-v3"></script>
   <script>
     /* ==========================================================
        GUARANTEED MOBILE NAVIGATION BRIDGE
@@ -687,7 +767,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js?v=20261123-tradebook-v71-firebase-email-actions", { scope: "./" })
+        navigator.serviceWorker.register("./service-worker.js?v=20261124-tradebook-forgot-otp-v3", { scope: "./" })
           .catch(err => console.warn("TradeBook service worker registration failed:", err));
       });
     }

@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0b1220">
   <title>TradeBook — Verify</title>
-  <link rel="stylesheet" href="style.css?v=20261123-tradebook-v71-firebase-email-actions">
+  <link rel="stylesheet" href="style.css?v=20261124-tradebook-forgot-otp-v1">
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261123-tradebook-v71-firebase-email-actions"></script>
+  <script src="firebase-config.js?v=20261124-tradebook-forgot-otp-v1"></script>
 </head>
 <body class="auth-action-body">
   <main class="auth-action-page">
@@ -46,7 +46,7 @@
   const continueUrl = params.get('continueUrl');
   const goBack = () => { location.href = continueUrl ? safeContinueUrl(continueUrl) : './index.html'; };
   const safeContinueUrl = (value) => {
-    try { const u = new URL(value); if (u.origin === 'https://eldhosaliyas2009-lgtm.github.io') return u.href; } catch (_) {}
+    try { const u = new URL(value); if (u.origin === 'https://tradebook-collab.github.io') return u.href; } catch (_) {}
     return './index.html';
   };
   function show(id){ document.querySelectorAll('section,#loadingState,#successState,#errorState').forEach(el=>el.classList.add('hidden')); document.getElementById(id)?.classList.remove('hidden'); }
