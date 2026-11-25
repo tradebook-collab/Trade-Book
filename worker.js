@@ -729,7 +729,8 @@ export default {
 
     if (
       request.method === "POST" &&
-      url.pathname === "/send-otp"
+      (url.pathname === "/send-otp" ||
+       url.pathname === "/send-login-otp")
     ) {
 
       const to =
@@ -746,12 +747,14 @@ export default {
         .trim();
 
       const type =
-        String(
-          body?.type ||
-          "reset"
-        )
-        .trim()
-        .toLowerCase();
+        url.pathname === "/send-login-otp"
+          ? "login"
+          : String(
+              body?.type ||
+              "reset"
+            )
+              .trim()
+              .toLowerCase();
 
 
       if (
@@ -997,7 +1000,8 @@ ignore this email.`,
 
     if (
       request.method === "POST" &&
-      url.pathname === "/verify-otp"
+      (url.pathname === "/verify-otp" ||
+       url.pathname === "/verify-login-otp")
     ) {
 
       const email =
@@ -1014,12 +1018,14 @@ ignore this email.`,
         .trim();
 
       const type =
-        String(
-          body?.type ||
-          "reset"
-        )
-        .trim()
-        .toLowerCase();
+        url.pathname === "/verify-login-otp"
+          ? "login"
+          : String(
+              body?.type ||
+              "reset"
+            )
+              .trim()
+              .toLowerCase();
 
 
       if (

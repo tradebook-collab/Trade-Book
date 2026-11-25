@@ -13,11 +13,11 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <title>TradeBook</title>
-  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v6">
+  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v9">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261126-tradebook-login-otp-v6"></script>
+  <script src="firebase-config.js?v=20261126-tradebook-login-otp-v9"></script>
 
 </head>
 <body>
@@ -668,7 +668,7 @@
   <div id="confirmModal" class="modal hidden"><div class="modal-card"><h3 id="confirmTitle">Confirm Action</h3><p id="confirmMessage"></p><div class="form-actions"><button id="confirmYesBtn" class="danger-btn">Confirm</button><button id="confirmNoBtn" class="secondary-btn">Cancel</button></div></div></div>
   <div id="toast" class="toast" role="status"></div>
   <script src="brevo-config.js?v=20261125-tradebook-brevo-otp-v1"></script>
-  <script src="app.js?v=20261126-tradebook-login-otp-v6"></script>
+  <script src="app.js?v=20261126-tradebook-login-otp-v9"></script>
   <script>
     /* ==========================================================
        GUARANTEED MOBILE NAVIGATION BRIDGE
@@ -824,7 +824,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-login-otp-v6", { scope: "./" })
+        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-login-otp-v9", { scope: "./" })
           .catch(err => console.warn("TradeBook service worker registration failed:", err));
       });
     }
