@@ -9,7 +9,7 @@
  *   SENDER_NAME     = TradeBook
  */
 
-const ALLOWED_ORIGIN = "https://tradebook-collab.github.io";
+const ALLOWED_ORIGIN = "https://tradebook2009.github.io";
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 function corsHeaders(origin) {
@@ -34,11 +34,11 @@ function jsonResponse(body, status, origin) {
 }
 
 function isValidEmail(email) {
-  return typeof email === "string" && /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email.trim());
+  return typeof email === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
 }
 
 function isValidOtp(otp) {
-  return typeof otp === "string" && /^\\d{6}$/.test(otp);
+  return typeof otp === "string" && /^\d{6}$/.test(otp);
 }
 
 function escapeHtml(value) {
