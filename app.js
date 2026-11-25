@@ -50,6 +50,12 @@ let forgotOtpValue = null;
 let forgotOtpExpiresAt = 0;
 let forgotOtpTimerHandle = null;
 
+let actionOtpValue = null;
+let actionOtpExpiresAt = 0;
+let actionOtpTimerHandle = null;
+let pendingChangePasswordAfterOtp = null;
+let pendingActionOtpType = null;
+
 let db = null;
 let trades = [];
 let fields = [];
@@ -5804,6 +5810,103 @@ function setupForgotPasswordFlow(){
 }
 
 /* ==========================================
+   SETTINGS ACTION OTP
+   Used for Settings -> Change Password and Delete Account.
+========================================== */
+function clearActionOtpTimer(){
+  if(actionOtpTimerHandle){clearInterval(actionOtpTimerHandle);actionOtpTimerHandle=null;}
+}
+function clearActionOtpInputs(){document.querySelectorAll('.action-otp-box').forEach(el=>el.value='');}
+function getActionOtpInputValue(){return [...document.querySelectorAll('.action-otp-box')].map(el=>el.value).join('');}
+function showActionOtpModal(type){
+  pendingActionOtpType=type;
+  if($('actionOtpTitle')) $('actionOtpTitle').textContent=type==='change-password'?'Verify OTP to Change Password':'Verify OTP to Delete Account';
+  if($('actionOtpMessage')) $('actionOtpMessage').textContent=type==='change-password'?'Enter the 6-digit OTP sent to your registered email before changing your password.':'Enter the 6-digit OTP sent to your registered email before deleting your account.';
+  if($('actionOtpError')) $('actionOtpError').textContent='';
+  clearActionOtpInputs();
+  $('actionOtpModal')?.classList.remove('hidden');
+  document.querySelector('.action-otp-box')?.focus();
+}
+function closeActionOtpModal(){
+  clearActionOtpTimer(); actionOtpValue=null; actionOtpExpiresAt=0; pendingActionOtpType=null; pendingChangePasswordAfterOtp=null; clearActionOtpInputs();
+  if($('actionOtpError')) $('actionOtpError').textContent='';
+  $('actionOtpModal')?.classList.add('hidden');
+}
+function startActionOtpTimer(){
+  clearActionOtpTimer();
+  const tick=()=>{
+    const remaining=Math.max(0,actionOtpExpiresAt-Date.now());
+    const seconds=Math.ceil(remaining/1000);
+    const min=String(Math.floor(seconds/60)).padStart(2,'0');
+    const sec=String(seconds%60).padStart(2,'0');
+    if($('actionOtpTimer')) $('actionOtpTimer').textContent=`Code expires in ${min}:${sec}`;
+    if(remaining<=0){clearActionOtpTimer();actionOtpValue=null;actionOtpExpiresAt=0;if($('actionOtpTimer')) $('actionOtpTimer').textContent='Code expired. Please resend a new code.';if($('actionOtpVerifyBtn')) $('actionOtpVerifyBtn').disabled=true;}
+    else if($('actionOtpVerifyBtn')) $('actionOtpVerifyBtn').disabled=false;
+  };
+  tick(); actionOtpTimerHandle=setInterval(tick,250);
+}
+async function sendActionOtp(type){
+  const user=auth?.currentUser; const email=(user?.email||'').trim();
+  if(!user||!email) return showToast('Please log in again.');
+  actionOtpValue=null; actionOtpExpiresAt=0; clearActionOtpTimer();
+  const otp=generateForgotOtp(); const btn=$('actionOtpSendBtn');
+  if(btn){btn.disabled=true;btn.textContent='Sending OTP...';}
+  try{
+    await sendOtpThroughBrevoApi(email,otp);
+    actionOtpValue=otp; actionOtpExpiresAt=Date.now()+120000;
+    showActionOtpModal(type); startActionOtpTimer();
+  }catch(error){
+    showActionOtpModal(type);
+    authError('actionOtpError',error.message||'Could not send OTP.');
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent='Resend OTP';}
+  }
+}
+async function resendActionOtp(){const type=pendingActionOtpType;if(type) await sendActionOtp(type);}
+async function verifyActionOtp(){
+  const entered=getActionOtpInputValue();
+  if($('actionOtpError')) $('actionOtpError').textContent='';
+  if(!actionOtpValue||Date.now()>=actionOtpExpiresAt) return authError('actionOtpError','OTP expired. Please tap Resend OTP.');
+  if(entered!==actionOtpValue) return authError('actionOtpError','Incorrect OTP. Please try again.');
+  const type=pendingActionOtpType;
+  clearActionOtpTimer(); actionOtpValue=null; actionOtpExpiresAt=0;
+  if(type==='change-password'){
+    const newPassword=pendingChangePasswordAfterOtp; closeActionOtpModal();
+    const user=auth?.currentUser;
+    if(!user||!newPassword) return authError('changePasswordError','Password change session expired. Please try again.');
+    try{await user.updatePassword(newPassword);closePasswordModal();showToast('Password updated successfully.');}
+    catch(error){authError('changePasswordError',friendlyAuthError(error));}
+    return;
+  }
+  if(type==='delete-account'){
+    closeActionOtpModal();
+    const user=auth?.currentUser; if(!user) return;
+    pendingDeleteAfterEmailVerification=true;
+    try{
+      if(user.emailVerified){await permanentlyDeleteTradeBookAccount();return;}
+      await sendFirebaseVerificationEmail(user);
+      $('emailActionTitle').textContent='Verify Your Email';
+      $('emailActionMessage').textContent='Open the verification link sent to your registered email. After completing it, return to TradeBook and tap “I Verified My Email”.';
+      $('emailActionError').textContent=''; $('emailActionVerifiedBtn').textContent='I Verified My Email'; $('emailActionModal')?.classList.remove('hidden');
+    }catch(error){
+      const code=error?.code||'';
+      if(code.includes('already-verified')) await permanentlyDeleteTradeBookAccount();
+      else {$('deleteAccountError').textContent=friendlyAuthError(error);$('deleteAccountModal')?.classList.remove('hidden');}
+    }
+  }
+}
+function setupActionOtp(){
+  $('actionOtpVerifyBtn')?.addEventListener('click',verifyActionOtp);
+  $('actionOtpResendBtn')?.addEventListener('click',resendActionOtp);
+  $('closeActionOtpBtn')?.addEventListener('click',closeActionOtpModal);
+  document.querySelectorAll('.action-otp-box').forEach((input,index)=>{
+    input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,1);if(input.value&&index<5) document.querySelector(`[data-action-otp-index="${index+1}"]`)?.focus();});
+    input.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!input.value&&index>0) document.querySelector(`[data-action-otp-index="${index-1}"]`)?.focus();});
+    input.addEventListener('paste',e=>{e.preventDefault();const text=(e.clipboardData?.getData('text')||'').replace(/\D/g,'').slice(0,6);[...document.querySelectorAll('.action-otp-box')].forEach((el,i)=>el.value=text[i]||'');document.querySelector(`[data-action-otp-index="${Math.min(text.length,5)}"]`)?.focus();});
+  });
+}
+
+/* ==========================================
    FIREBASE EMAIL ACTION FLOWS
    No Cloud Functions / billing required.
 ========================================== */
@@ -6113,14 +6216,14 @@ async function setupTradeBookAuth(){
       if(!window.__tradeBookForgotPassword && np===current) return authError('changePasswordError','New password must be different from the current password.');
       try{
         if(window.__tradeBookForgotPassword){
-          // The custom Firebase action handler performs confirmPasswordReset().
           return authError('changePasswordError','Please complete password reset from the email reset page.');
         }
-        const credential=firebase.auth.EmailAuthProvider.credential(auth.currentUser.email,current);
-        await auth.currentUser.reauthenticateWithCredential(credential);
-        await auth.currentUser.updatePassword(np);
-        closePasswordModal();
-        showToast('Password updated successfully.');
+        const user=auth.currentUser;
+        if(!user||!user.email) return authError('changePasswordError','Please log in again and retry.');
+        const credential=firebase.auth.EmailAuthProvider.credential(user.email,current);
+        await user.reauthenticateWithCredential(credential);
+        pendingChangePasswordAfterOtp=np;
+        await sendActionOtp('change-password');
       }catch(e){ authError('changePasswordError',friendlyAuthError(e)); }
     });
 
@@ -6130,28 +6233,14 @@ $('closeDeleteAccountModal')?.addEventListener('click',()=> $('deleteAccountModa
       try{
         const user=auth.currentUser;
         if(!user) return;
-        // Keep the existing current-password confirmation first.
         const current=prompt('For security, enter your current TradeBook password to confirm account deletion:');
         if(current===null) return;
         if(!current) return authError('deleteAccountError','Enter your current password.');
+        if(!user.email) return authError('deleteAccountError','Your account email is unavailable. Please log in again.');
         const credential=firebase.auth.EmailAuthProvider.credential(user.email,current);
         await user.reauthenticateWithCredential(credential);
-
-        // After the password check, show a separate email-verification step.
-        pendingDeleteAfterEmailVerification = true;
-        try { await sendFirebaseVerificationEmail(user); } catch (emailError) {
-          // If Firebase reports that this already-verified email cannot be sent again,
-          // the account is already email-verified; keep the verification page and allow
-          // the user to confirm there. Other errors are surfaced to the user.
-          const code = emailError?.code || '';
-          if (!code.includes('already-verified')) throw emailError;
-        }
         $('deleteAccountModal')?.classList.add('hidden');
-        $('emailActionTitle').textContent='Verify Your Email';
-        $('emailActionMessage').textContent='Open the verification link sent to your registered email. After completing it, return to TradeBook and tap “I Verified My Email”.';
-        $('emailActionError').textContent='';
-        $('emailActionVerifiedBtn').textContent='I Verified My Email';
-        $('emailActionModal')?.classList.remove('hidden');
+        await sendActionOtp('delete-account');
       }catch(e){ $('deleteAccountError').textContent=friendlyAuthError(e); }
     });
 
@@ -6219,5 +6308,5 @@ function closePasswordModal(){ $('passwordModal')?.classList.add('hidden'); $('c
 $('closePasswordModal')?.addEventListener('click',closePasswordModal);
 
 // Start authentication once. The main TradeBook application starts only after a verified login.
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); },{once:true});
-else { setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); }
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); setupActionOtp(); },{once:true});
+else { setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); setupActionOtp(); }

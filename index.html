@@ -189,6 +189,28 @@
     </div>
   </div>
 
+  <!-- SETTINGS ACTION OTP: CHANGE PASSWORD / DELETE ACCOUNT -->
+  <div id="actionOtpModal" class="modal hidden">
+    <div class="modal-card auth-modal-card forgot-flow-card">
+      <div class="modal-heading"><h2 id="actionOtpTitle">Verify OTP</h2><button id="closeActionOtpBtn" class="icon-btn" type="button" aria-label="Close">×</button></div>
+      <div class="forgot-flow-icon">🔐</div>
+      <h3>Verify OTP</h3>
+      <p id="actionOtpMessage" class="muted-text center-text">Enter the 6-digit OTP sent to your registered email.</p>
+      <div class="otp-box-row" id="actionOtpBoxes">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="0" aria-label="OTP digit 1">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="1" aria-label="OTP digit 2">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="2" aria-label="OTP digit 3">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="3" aria-label="OTP digit 4">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="4" aria-label="OTP digit 5">
+        <input class="action-otp-box forgot-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="5" aria-label="OTP digit 6">
+      </div>
+      <div id="actionOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+      <div class="forgot-resend-row">Didn’t receive the code? <button id="actionOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+      <button id="actionOtpVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+      <div id="actionOtpError" class="auth-error"></div>
+    </div>
+  </div>
+
   <div id="emailActionModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="emailActionTitle">Verify Your Email</h2><button id="closeEmailActionModal" class="icon-btn" type="button">×</button></div><p id="emailActionMessage" class="muted-text"></p><div id="emailActionError" class="auth-error"></div><button id="emailActionVerifiedBtn" class="primary-btn full-btn" type="button">I Verified My Email</button></div></div>
   <div id="deleteAccountModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div><div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div><button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button><div id="deleteAccountError" class="auth-error"></div></div></div>
   <div id="passwordModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="passwordModalTitle">Change Password</h2><button id="closePasswordModal" class="icon-btn">×</button></div>
