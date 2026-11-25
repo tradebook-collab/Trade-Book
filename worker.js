@@ -1078,7 +1078,7 @@ ignore this email.`,
           env,
           email,
           otp,
-          "reset"
+          type
         );
 
 

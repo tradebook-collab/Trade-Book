@@ -1,30 +1,18 @@
-TRADEBOOK LOGIN OTP
-
-Login flow:
-Email + Password -> Firebase password check -> TradeBook Login OTP -> Verify OTP -> Dashboard.
-
-Login OTP email subject:
 TradeBook Login OTP
 
-OTP TTL:
-2 minutes
+Login flow:
+Email + Password -> Firebase password check -> Login OTP -> Verify OTP -> Dashboard
 
-Frontend Worker URL:
-https://tradebook-otp.tradebook2009.workers.dev
+Worker endpoint:
+POST /send-otp with {to, otp, type:"login"}
+POST /verify-otp with {email, otp, type:"login"}
 
-IMPORTANT:
-Deploy worker.js to the existing Cloudflare Worker tradebook-otp.
-Do not change the existing Cloudflare secret values or KV binding.
-Required secrets/binding remain:
-BREVO_API_KEY
-FIREBASE_PROJECT_ID
-FIREBASE_CLIENT_EMAIL
-FIREBASE_PRIVATE_KEY
-OTP_STORE
+Brevo email subject:
+TradeBook Login OTP
 
-Replace these frontend files in GitHub Pages:
-index.html
-app.js
-style.css
+OTP expiry:
+2 minutes (Cloudflare KV OTP_STORE)
 
-No IndexedDB data is deleted or changed by this login OTP update.
+Important:
+Do not change FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY,
+BREVO_API_KEY, or OTP_STORE binding.
