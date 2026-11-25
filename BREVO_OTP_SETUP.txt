@@ -1,24 +1,23 @@
-TradeBook OTP setup
+TRADEBOOK - BREVO OTP + CLOUDFLARE WORKER SETUP
 
-1. Frontend endpoint:
-https://tradebook-otp.tradebook2009.workers.dev/send-otp
+Frontend:
+- GitHub Pages origin: https://tradebook-collab.github.io
+- Worker endpoint: https://tradebook-otp.tradebook2009.workers.dev/send-otp
+- brevo-config.js contains only the public Worker URL; do not put the Brevo API key in GitHub Pages.
 
-2. Cloudflare Worker:
-Deploy worker.js from this package to the Worker named tradebook-otp.
+Cloudflare Worker:
+1. Deploy worker.js to the tradebook-otp Worker.
+2. Create the Worker secret BREVO_API_KEY with your Brevo API key.
+3. Keep the verified sender email as tradebook2009@gmail.com.
+4. Allowed frontend origin is https://tradebook-collab.github.io.
 
-3. Required Cloudflare secret:
-BREVO_API_KEY = your Brevo API key
+OTP types:
+- reset -> TradeBook Password Reset OTP
+- change -> TradeBook Password Change OTP
+- delete -> TradeBook Account Deletion OTP
+\Each OTP is 6 digits and expires in 2 minutes. Resend invalidates the previous code.
 
-4. Brevo sender:
-tradebook2009@gmail.com must be a verified sender in Brevo.
-
-5. GitHub Pages:
-The allowed frontend origin is:
-https://tradebook2009.github.io
-
-Important:
-The frontend app.js sends JSON in this form:
-{ "to": "user@example.com", "otp": "123456" }
-
-The Cloudflare worker.js in this package is written to accept exactly that request.
-Do not replace it with a Worker that expects only { "email": ... } or generates a different OTP contract.
+Change Password: current password -> re-authentication -> separate OTP page -> verify OTP -> update password -> success page. Wrong current password shows “Current password is wrong.”
+Delete Account: permanent warning + current password -> re-authentication -> separate deletion OTP page -> verify OTP -> permanently delete Firebase account -> success page.
+Password rules turn green with a check mark individually while typing in Sign Up and Change Password.
+IndexedDB/trading data logic is preserved.
