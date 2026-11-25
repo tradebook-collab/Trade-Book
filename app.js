@@ -6222,21 +6222,24 @@ async function setupTradeBookAuth(){
       authLoginOtpPassword=password;
       authLoginOtpInProgress=true;
       try{
-        // Firebase must validate the password first. The auth-state listener
-        // is intentionally blocked while this temporary sign-in is active.
+        // Step 1: Firebase validates the password.
+        // Step 2: immediately sign out the temporary Firebase session.
+        // Step 3: keep the OTP screen visible while the email is being sent.
+        // The auth-state listener is blocked while this OTP challenge is active.
         await auth.signInWithEmailAndPassword(email,password);
         await auth.signOut();
+        openLoginOtpView();
         const sent=await sendAuthLoginOtp();
         if(!sent){
-          authLoginOtpInProgress=false;
-          authLoginOtpPassword='';
-          showAuthView('authLoginView');
+          // Do NOT jump back to the login screen. Keep the OTP screen visible
+          // so the user can see the actual send error or use Resend OTP.
           return;
         }
-        openLoginOtpView();
       }catch(e){
         authLoginOtpInProgress=false;
         authLoginOtpPassword='';
+        authLoginOtpEmail='';
+        showAuthView('authLoginView');
         authError('authLoginError',friendlyAuthError(e));
       }
     });
