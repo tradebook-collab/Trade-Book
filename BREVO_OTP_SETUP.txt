@@ -22,8 +22,3 @@ The frontend app.js sends JSON in this form:
 
 The Cloudflare worker.js in this package is written to accept exactly that request.
 Do not replace it with a Worker that expects only { "email": ... } or generates a different OTP contract.
-
-
-Settings OTP is also enabled for:
-- Change Password: current password -> OTP -> update password
-- Delete Account: current password -> OTP -> existing email verification -> delete account

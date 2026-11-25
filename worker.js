@@ -6,7 +6,7 @@
  *   BREVO_API_KEY = your Brevo API key
  */
 
-const ALLOWED_ORIGIN = "https://tradebook2009.github.io";
+const ALLOWED_ORIGIN = "https://tradebook-collab.github.io";
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 const SENDER_EMAIL = "tradebook2009@gmail.com";
 const SENDER_NAME = "TradeBook";
@@ -54,13 +54,35 @@ function escapeHtml(value) {
     .replaceAll("'", "&#039;");
 }
 
-function buildOtpHtml(otp) {
+function getOtpInfo(type) {
+  const map = {
+    reset: {
+      subject: "TradeBook Password Reset OTP",
+      title: "TradeBook Password Reset",
+      text: "Your TradeBook password reset OTP is"
+    },
+    change: {
+      subject: "TradeBook Password Change OTP",
+      title: "TradeBook Password Change",
+      text: "Your TradeBook password change OTP is"
+    },
+    delete: {
+      subject: "TradeBook Account Deletion OTP",
+      title: "TradeBook Account Deletion",
+      text: "Your TradeBook account deletion OTP is"
+    }
+  };
+  return map[type] || map.reset;
+}
+
+function buildOtpHtml(otp, type) {
   const safeOtp = escapeHtml(otp);
+  const info = getOtpInfo(type);
   return `<!doctype html>
 <html><body style="font-family:Arial,sans-serif;background:#f5f7fb;padding:24px;color:#182033">
 <div style="max-width:520px;margin:auto;background:#fff;border:1px solid #e5e9f2;border-radius:16px;padding:28px">
-<h2 style="margin:0 0 12px">TradeBook Password Reset</h2>
-<p>Your TradeBook password reset OTP is:</p>
+<h2 style="margin:0 0 12px">${escapeHtml(info.title)}</h2>
+<p>${escapeHtml(info.text)}:</p>
 <div style="font-size:32px;font-weight:700;letter-spacing:8px;text-align:center;padding:18px 10px;background:#f1f4f9;border-radius:12px">${safeOtp}</div>
 <p style="margin-top:20px">This code is valid for 2 minutes.</p>
 <p style="font-size:13px;color:#667085">If you did not request this code, you can safely ignore this email.</p>
@@ -117,6 +139,7 @@ export default {
 
     const to = String(body?.to || "").trim().toLowerCase();
     const otp = String(body?.otp || "").trim();
+    const type = String(body?.type || "reset").trim().toLowerCase();
 
     if (!isValidEmail(to)) {
       return jsonResponse(
@@ -129,6 +152,14 @@ export default {
     if (!isValidOtp(otp)) {
       return jsonResponse(
         { success: false, message: "OTP must contain exactly 6 digits" },
+        400,
+        origin
+      );
+    }
+
+    if (!['reset','change','delete'].includes(type)) {
+      return jsonResponse(
+        { success: false, message: "Invalid OTP type" },
         400,
         origin
       );
@@ -150,10 +181,10 @@ export default {
         email: SENDER_EMAIL
       },
       to: [{ email: to }],
-      subject: "TradeBook Password Reset OTP",
+      subject: getOtpInfo(type).subject,
       textContent:
-        `Your TradeBook password reset OTP is ${otp}.\n\nThis code is valid for 2 minutes. If you did not request this code, ignore this email.`,
-      htmlContent: buildOtpHtml(otp)
+        `${getOtpInfo(type).text} ${otp}.\n\nThis code is valid for 2 minutes. If you did not request this code, ignore this email.`,
+      htmlContent: buildOtpHtml(otp, type)
     };
 
     let brevoResponse;
