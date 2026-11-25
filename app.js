@@ -27,7 +27,7 @@ function sheetInlineIcon(type) {
 }
 
 // TradeLedger stable build: existing IndexedDB data preserved.
-const TRADELEDGER_BUILD = "20261124-tradebook-v78-settings-otp-ready";
+const TRADELEDGER_BUILD = "20261126-tradebook-login-otp-stable";
 
 const DB_NAME = "TradeLedgerDB";
 const SETTINGS_KEY = "TradeLedgerColumnSettings";
@@ -5853,6 +5853,7 @@ let authLoginOtpEmail = '';
 let authLoginOtpPassword = '';
 let authLoginOtpExpiresAt = 0;
 let authLoginOtpTimerHandle = null;
+let authLoginOtpInProgress = false;
 
 function clearAuthLoginOtpTimer(){
   if(authLoginOtpTimerHandle){clearInterval(authLoginOtpTimerHandle);authLoginOtpTimerHandle=null;}
@@ -5939,13 +5940,13 @@ async function verifyAuthLoginOtp(){
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success) throw new Error(d.message||'Incorrect or expired OTP.');
     clearAuthLoginOtpTimer();
-    sessionStorage.removeItem('tradeBookLoginOtpPending');
+    authLoginOtpInProgress = false;
     const email=authLoginOtpEmail, password=authLoginOtpPassword;
     authLoginOtpPassword='';
     try{
       await auth.signInWithEmailAndPassword(email,password);
     }catch(e){
-      sessionStorage.removeItem('tradeBookLoginOtpPending');
+      authLoginOtpInProgress = false;
       showAuthView('authLoginView');
       throw e;
     }
@@ -5956,7 +5957,7 @@ function cancelAuthLoginOtp(){
   clearAuthLoginOtpTimer();
   authLoginOtpEmail='';
   authLoginOtpPassword='';
-  sessionStorage.removeItem('tradeBookLoginOtpPending');
+  authLoginOtpInProgress = false;
   showAuthView('authLoginView');
 }
 
@@ -6188,12 +6189,10 @@ async function setupTradeBookAuth(){
 
     auth.onAuthStateChanged(async user=>{
       tradeBookAuthUser=user||null;
-      const loginOtpPending=sessionStorage.getItem('tradeBookLoginOtpPending')==='1';
-      if(loginOtpPending){
-        if(user){
-          try{await auth.signOut();}catch(_){ }
-        }
-        openAuthGate(authLoginOtpEmail ? 'authLoginOtpView' : 'authLoginView');
+      // IMPORTANT: During the Login -> OTP handoff Firebase briefly reports
+      // the password-authenticated user. Do not let that auth-state event
+      // open/close the auth gate or navigate to the dashboard before OTP.
+      if(authLoginOtpInProgress){
         return;
       }
       if(!user){ openAuthGate('authLoginView'); return; }
@@ -6221,21 +6220,22 @@ async function setupTradeBookAuth(){
       if(!password) return authError('authLoginError','Enter your password.');
       authLoginOtpEmail=email;
       authLoginOtpPassword=password;
-      sessionStorage.removeItem('tradeBookLoginOtpPending');
+      authLoginOtpInProgress=true;
       try{
-        sessionStorage.setItem('tradeBookLoginOtpPending','1');
+        // Firebase must validate the password first. The auth-state listener
+        // is intentionally blocked while this temporary sign-in is active.
         await auth.signInWithEmailAndPassword(email,password);
         await auth.signOut();
         const sent=await sendAuthLoginOtp();
         if(!sent){
-          sessionStorage.removeItem('tradeBookLoginOtpPending');
+          authLoginOtpInProgress=false;
           authLoginOtpPassword='';
           showAuthView('authLoginView');
           return;
         }
         openLoginOtpView();
       }catch(e){
-        sessionStorage.removeItem('tradeBookLoginOtpPending');
+        authLoginOtpInProgress=false;
         authLoginOtpPassword='';
         authError('authLoginError',friendlyAuthError(e));
       }
