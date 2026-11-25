@@ -5908,10 +5908,10 @@ async function sendAuthLoginOtp(){
   const btn=$('authLoginOtpResendBtn');
   if(btn){btn.disabled=true;btn.textContent='Sending...';}
   try{
-    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/send-login-otp`,{
+    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/send-otp`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({to:email,otp})
+      body:JSON.stringify({to:email,otp,type:"login"})
     });
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success) throw new Error(d.message||'Could not send Login OTP.');
@@ -5932,10 +5932,10 @@ async function verifyAuthLoginOtp(){
   const btn=$('authLoginOtpVerifyBtn');
   if(btn){btn.disabled=true;btn.textContent='Verifying...';}
   try{
-    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/verify-login-otp`,{
+    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/verify-otp`,{
       method:'POST',
       headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({email:authLoginOtpEmail,otp})
+      body:JSON.stringify({email:authLoginOtpEmail,otp,type:"login"})
     });
     const d=await r.json().catch(()=>({}));
     if(!r.ok||!d.success) throw new Error(d.message||'Incorrect or expired OTP.');
