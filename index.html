@@ -13,11 +13,11 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <title>TradeBook</title>
-  <link rel="stylesheet" href="style.css?v=20261126-tradebook-forgot-otp-v4">
+  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v5">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261126-tradebook-forgot-otp-v4"></script>
+  <script src="firebase-config.js?v=20261126-tradebook-login-otp-v5"></script>
 
 </head>
 <body>
@@ -32,6 +32,23 @@
         <button id="authLoginBtn" class="primary-btn full-btn" type="button">Login</button>
         <div id="authLoginError" class="auth-error"></div>
         <p class="auth-switch">Don't have an account? <button id="showSignupBtn" class="text-btn" type="button">Create Account</button></p>
+      </div>
+      <div id="authLoginOtpView" class="auth-view hidden">
+        <h2>Login OTP</h2>
+        <p class="auth-subtitle">Enter the 6-digit OTP sent to your registered email.</p>
+        <div class="otp-box-row" id="authLoginOtpBoxes">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="0" aria-label="OTP digit 1">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="1" aria-label="OTP digit 2">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="2" aria-label="OTP digit 3">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="3" aria-label="OTP digit 4">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="4" aria-label="OTP digit 5">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="5" aria-label="OTP digit 6">
+        </div>
+        <div id="authLoginOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+        <div class="forgot-resend-row">Didn't receive the code? <button id="authLoginOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+        <button id="authLoginOtpVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+        <div id="authLoginOtpError" class="auth-error"></div>
+        <p class="auth-switch"><button id="authLoginOtpBackBtn" class="text-btn" type="button">Back to Login</button></p>
       </div>
       <div id="authSignupView" class="auth-view hidden">
         <h2>Create Account</h2><p class="auth-subtitle">Use your Gmail/email as your username</p>
@@ -651,7 +668,7 @@
   <div id="confirmModal" class="modal hidden"><div class="modal-card"><h3 id="confirmTitle">Confirm Action</h3><p id="confirmMessage"></p><div class="form-actions"><button id="confirmYesBtn" class="danger-btn">Confirm</button><button id="confirmNoBtn" class="secondary-btn">Cancel</button></div></div></div>
   <div id="toast" class="toast" role="status"></div>
   <script src="brevo-config.js?v=20261125-tradebook-brevo-otp-v1"></script>
-  <script src="app.js?v=20261126-tradebook-forgot-otp-v4"></script>
+  <script src="app.js?v=20261126-tradebook-login-otp-v5"></script>
   <script>
     /* ==========================================================
        GUARANTEED MOBILE NAVIGATION BRIDGE
@@ -807,7 +824,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-forgot-otp-v4", { scope: "./" })
+        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-login-otp-v5", { scope: "./" })
           .catch(err => console.warn("TradeBook service worker registration failed:", err));
       });
     }

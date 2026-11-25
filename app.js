@@ -5844,6 +5844,122 @@ async function verifyAuthForgotOtp(){
 function updateAuthForgotPasswordState(){const p=$('authForgotNewPassword')?.value||'',cp=$('authForgotConfirmPassword')?.value||'',r=passwordRulesState(p),valid=Object.values(r).every(Boolean); document.querySelector('[data-rules-for="authForgotNewPassword"]')?.querySelectorAll('[data-rule]').forEach(el=>{const ok=Boolean(r[el.dataset.rule]);el.classList.toggle('rule-valid',ok);el.classList.toggle('rule-invalid',!ok);}); const m=$('authForgotPasswordMatch'); if(m){m.textContent=cp?(p===cp?'Passwords match.':'Passwords do not match.'):'';m.classList.toggle('match',Boolean(cp&&p===cp));} const b=$('authForgotChangeBtn'); if(b)b.disabled=!(valid&&cp&&p===cp);}
 async function changeAuthForgotPassword(){const p=$('authForgotNewPassword')?.value||'',cp=$('authForgotConfirmPassword')?.value||''; $('authForgotPasswordMessage').textContent=''; if(!passwordRuleValid(p))return authError('authForgotPasswordMessage','Password does not meet all the required conditions.'); if(p!==cp)return authError('authForgotPasswordMessage','Passwords do not match.'); if(!authForgotResetToken)return authError('authForgotPasswordMessage','Reset session expired. Please start again.'); const b=$('authForgotChangeBtn');if(b){b.disabled=true;b.textContent='Changing Password...'} try{const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/reset-password`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({resetToken:authForgotResetToken,email:authForgotResetEmail,newPassword:p})});const d=await r.json().catch(()=>({}));if(!r.ok||!d.success)throw new Error(d.message||'Could not update the password.');authForgotResetToken='';window.__tradeBookForgotResetToken='';showAuthForgotStep('authForgotSuccessStep');$('authForgotBackRow')?.classList.add('hidden');}catch(e){authError('authForgotPasswordMessage',e.message||'Could not update the password.');updateAuthForgotPasswordState();}finally{if(b&&!$('authForgotSuccessStep')?.classList.contains('hidden'))b.textContent='Change Password';}}
 function isValidEmailForTradeBook(v){return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(String(v||'').trim());}
+/* ==========================================
+   LOGIN OTP - BREVO / CLOUDFLARE WORKER
+   Password is checked by Firebase first.
+   Dashboard access is allowed only after OTP verification.
+========================================== */
+let authLoginOtpEmail = '';
+let authLoginOtpPassword = '';
+let authLoginOtpExpiresAt = 0;
+let authLoginOtpTimerHandle = null;
+
+function clearAuthLoginOtpTimer(){
+  if(authLoginOtpTimerHandle){clearInterval(authLoginOtpTimerHandle);authLoginOtpTimerHandle=null;}
+}
+function clearAuthLoginOtpBoxes(){
+  document.querySelectorAll('[data-login-otp-index]').forEach(x=>x.value='');
+}
+function getAuthLoginOtp(){
+  return [...document.querySelectorAll('[data-login-otp-index]')].map(x=>x.value).join('');
+}
+function startAuthLoginOtpTimer(){
+  clearAuthLoginOtpTimer();
+  const tick=()=>{
+    const rem=Math.max(0,authLoginOtpExpiresAt-Date.now());
+    const sec=Math.ceil(rem/1000);
+    if($('authLoginOtpTimer')) $('authLoginOtpTimer').textContent=rem>0
+      ? `Code expires in ${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`
+      : 'Code expired. Please resend OTP.';
+    if(rem<=0) clearAuthLoginOtpTimer();
+  };
+  tick();
+  authLoginOtpTimerHandle=setInterval(tick,250);
+}
+function setupAuthLoginOtpInputs(){
+  document.querySelectorAll('[data-login-otp-index]').forEach((input,index)=>{
+    input.addEventListener('input',()=>{
+      input.value=input.value.replace(/\D/g,'').slice(0,1);
+      if(input.value && index<5) document.querySelector(`[data-login-otp-index="${index+1}"]`)?.focus();
+    });
+    input.addEventListener('keydown',e=>{
+      if(e.key==='Backspace'&&!input.value&&index>0) document.querySelector(`[data-login-otp-index="${index-1}"]`)?.focus();
+    });
+    input.addEventListener('paste',e=>{
+      e.preventDefault();
+      const t=(e.clipboardData?.getData('text')||'').replace(/\D/g,'').slice(0,6);
+      document.querySelectorAll('[data-login-otp-index]').forEach((el,i)=>el.value=t[i]||'');
+      document.querySelector(`[data-login-otp-index="${Math.min(t.length,5)}"]`)?.focus();
+    });
+  });
+}
+function openLoginOtpView(){
+  showAuthView('authLoginOtpView');
+  clearAuthLoginOtpBoxes();
+  $('authLoginOtpError').textContent='';
+  startAuthLoginOtpTimer();
+  document.querySelector('[data-login-otp-index="0"]')?.focus();
+}
+async function sendAuthLoginOtp(){
+  const email=authLoginOtpEmail.trim().toLowerCase();
+  if(!isValidEmailForTradeBook(email)){ authError('authLoginOtpError','Invalid registered email address.'); return false; }
+  const otp=String(Math.floor(100000+Math.random()*900000));
+  const btn=$('authLoginOtpResendBtn');
+  if(btn){btn.disabled=true;btn.textContent='Sending...';}
+  try{
+    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/send-otp`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({to:email,otp,type:'login'})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.message||'Could not send Login OTP.');
+    authLoginOtpExpiresAt=Date.now()+120000;
+    clearAuthLoginOtpBoxes();
+    $('authLoginOtpError').textContent='Login OTP sent to your registered email.';
+    startAuthLoginOtpTimer();
+    document.querySelector('[data-login-otp-index="0"]')?.focus();
+    return true;
+  }catch(e){authError('authLoginOtpError',e.message||'Could not send Login OTP.'); return false;}
+  finally{if(btn){btn.disabled=false;btn.textContent='Resend OTP';}}
+}
+async function verifyAuthLoginOtp(){
+  const otp=getAuthLoginOtp();
+  $('authLoginOtpError').textContent='';
+  if(otp.length!==6) return authError('authLoginOtpError','Enter the 6-digit OTP.');
+  if(Date.now()>=authLoginOtpExpiresAt) return authError('authLoginOtpError','OTP expired. Please resend OTP.');
+  const btn=$('authLoginOtpVerifyBtn');
+  if(btn){btn.disabled=true;btn.textContent='Verifying...';}
+  try{
+    const r=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/verify-otp`,{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:authLoginOtpEmail,otp,type:'login'})
+    });
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!d.success) throw new Error(d.message||'Incorrect or expired OTP.');
+    clearAuthLoginOtpTimer();
+    sessionStorage.removeItem('tradeBookLoginOtpPending');
+    const email=authLoginOtpEmail, password=authLoginOtpPassword;
+    authLoginOtpPassword='';
+    try{
+      await auth.signInWithEmailAndPassword(email,password);
+    }catch(e){
+      sessionStorage.removeItem('tradeBookLoginOtpPending');
+      showAuthView('authLoginView');
+      throw e;
+    }
+  }catch(e){authError('authLoginOtpError',friendlyAuthError(e));}
+  finally{if(btn){btn.disabled=false;btn.textContent='Verify OTP';}}
+}
+function cancelAuthLoginOtp(){
+  clearAuthLoginOtpTimer();
+  authLoginOtpEmail='';
+  authLoginOtpPassword='';
+  sessionStorage.removeItem('tradeBookLoginOtpPending');
+  showAuthView('authLoginView');
+}
+
 function setupAuthForgotOtpInputs(){document.querySelectorAll('[data-auth-otp-index]').forEach((input,index)=>{input.addEventListener('input',()=>{input.value=input.value.replace(/\D/g,'').slice(0,1);if(input.value&&index<5)document.querySelector(`[data-auth-otp-index="${index+1}"]`)?.focus();});input.addEventListener('keydown',e=>{if(e.key==='Backspace'&&!input.value&&index>0)document.querySelector(`[data-auth-otp-index="${index-1}"]`)?.focus();});input.addEventListener('paste',e=>{e.preventDefault();const t=(e.clipboardData?.getData('text')||'').replace(/\D/g,'').slice(0,6);document.querySelectorAll('[data-auth-otp-index]').forEach((el,i)=>el.value=t[i]||'');});});}
 
 function setupForgotPasswordFlow(){
@@ -6072,6 +6188,14 @@ async function setupTradeBookAuth(){
 
     auth.onAuthStateChanged(async user=>{
       tradeBookAuthUser=user||null;
+      const loginOtpPending=sessionStorage.getItem('tradeBookLoginOtpPending')==='1';
+      if(loginOtpPending){
+        if(user){
+          try{await auth.signOut();}catch(_){ }
+        }
+        openAuthGate(authLoginOtpEmail ? 'authLoginOtpView' : 'authLoginView');
+        return;
+      }
       if(!user){ openAuthGate('authLoginView'); return; }
       if(!user.emailVerified){
         openAuthGate('authOtpView');
@@ -6085,14 +6209,36 @@ async function setupTradeBookAuth(){
     $('showLoginBtn')?.addEventListener('click',()=>showAuthView('authLoginView'));
     $('authForgotBtn')?.addEventListener('click',()=>showAuthView('authForgotView'));
     $('backToLoginBtn')?.addEventListener('click',()=>showAuthView('authLoginView'));
+    $('authLoginOtpVerifyBtn')?.addEventListener('click',verifyAuthLoginOtp);
+    $('authLoginOtpResendBtn')?.addEventListener('click',sendAuthLoginOtp);
+    $('authLoginOtpBackBtn')?.addEventListener('click',cancelAuthLoginOtp);
+    setupAuthLoginOtpInputs();
 
     $('authLoginBtn')?.addEventListener('click',async()=>{
       authError('authLoginError','');
-      const email=$('authLoginEmail').value.trim(), password=$('authLoginPassword').value;
+      const email=$('authLoginEmail').value.trim().toLowerCase(), password=$('authLoginPassword').value;
       if(!email) return authError('authLoginError','Enter your email address.');
       if(!password) return authError('authLoginError','Enter your password.');
-      try{ await auth.signInWithEmailAndPassword(email,password); }
-      catch(e){ authError('authLoginError',friendlyAuthError(e)); }
+      authLoginOtpEmail=email;
+      authLoginOtpPassword=password;
+      sessionStorage.removeItem('tradeBookLoginOtpPending');
+      try{
+        sessionStorage.setItem('tradeBookLoginOtpPending','1');
+        await auth.signInWithEmailAndPassword(email,password);
+        await auth.signOut();
+        const sent=await sendAuthLoginOtp();
+        if(!sent){
+          sessionStorage.removeItem('tradeBookLoginOtpPending');
+          authLoginOtpPassword='';
+          showAuthView('authLoginView');
+          return;
+        }
+        openLoginOtpView();
+      }catch(e){
+        sessionStorage.removeItem('tradeBookLoginOtpPending');
+        authLoginOtpPassword='';
+        authError('authLoginError',friendlyAuthError(e));
+      }
     });
 
     $('authSignupBtn')?.addEventListener('click',async()=>{
