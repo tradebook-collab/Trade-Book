@@ -2038,6 +2038,5 @@ body:not(.tradebook-home-active) #newTradeBtn { display: inline-flex; align-item
 .forgot-success-icon{width:64px;height:64px;border-radius:50%;margin:8px auto 14px;display:flex;align-items:center;justify-content:center;background:rgba(40,199,111,.14);border:1px solid rgba(40,199,111,.45);color:#62e497;font-size:34px;font-weight:900}
 @media(max-width:430px){.forgot-flow-card{padding:22px 18px}.otp-box-row{gap:6px}.forgot-otp-box{height:48px!important;font-size:21px}}
 
-/* CHANGE / DELETE ACCOUNT ACTION OTP FLOWS */
-.password-rules span.rule-valid{color:#62e497!important}.password-rules span.rule-invalid{color:#f1f5f9!important}
-.action-flow-view.hidden{display:none}.action-otp-card{max-width:470px}.action-otp-card h3{text-align:center;margin:8px 0 8px;color:#f5f8ff;font-size:21px}.action-otp-card .muted-text{line-height:1.55}.action-otp-box{width:100%!important;height:52px!important;margin:0!important;padding:0!important;text-align:center;font-size:23px;font-weight:800;letter-spacing:0;border-radius:11px!important}.action-otp-box:focus{border-color:#3f8cff!important;box-shadow:0 0 0 2px rgba(63,140,255,.12)}.delete-otp-card .action-otp-box:focus{border-color:#ff5364!important;box-shadow:0 0 0 2px rgba(255,83,100,.12)}.delete-flow-icon{background:rgba(255,83,100,.12);border-color:rgba(255,83,100,.4)}.delete-timer{color:#ffb0b8}.action-otp-card .forgot-success-icon{margin-top:8px}.action-otp-card .danger-btn{margin-top:14px}
+/* Forgot Password OTP flow safety */
+#forgotPasswordFlowModal { z-index: 100000 !important; }

@@ -13,11 +13,11 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <title>TradeBook</title>
-  <link rel="stylesheet" href="style.css?v=20261124-tradebook-forgot-otp-v3">
+  <link rel="stylesheet" href="style.css?v=20261126-tradebook-forgot-otp-v4">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
-  <script src="firebase-config.js?v=20261124-tradebook-forgot-otp-v3"></script>
+  <script src="firebase-config.js?v=20261126-tradebook-forgot-otp-v4"></script>
 
 </head>
 <body>
@@ -52,11 +52,51 @@
         <div id="authOtpError" class="auth-error"></div>
       </div>
       <div id="authForgotView" class="auth-view hidden">
-        <h2>Forgot Password</h2>
-        <p class="auth-subtitle">Enter your email to receive a secure password reset link.</p>
-        <label>Email<input id="authResetEmail" type="email" autocomplete="email"></label>
-        <button id="authResetBtn" class="primary-btn full-btn" type="button">Send Reset Link</button>
-        <div id="authResetMessage" class="auth-message"></div>
+        <div id="authForgotEmailStep">
+          <h2>Forgot Password</h2>
+          <p class="auth-subtitle">Enter your registered email to receive a secure 6-digit OTP.</p>
+          <label>Email<input id="authResetEmail" type="email" autocomplete="email"></label>
+          <button id="authResetBtn" class="primary-btn full-btn" type="button">Send OTP</button>
+          <div id="authResetMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotOtpStep" class="hidden">
+          <h2>Verify OTP</h2>
+          <p class="auth-subtitle">Enter the 6-digit OTP sent to your email.</p>
+          <div class="otp-box-row" id="authForgotOtpBoxes">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="0" aria-label="OTP digit 1">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="1" aria-label="OTP digit 2">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="2" aria-label="OTP digit 3">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="3" aria-label="OTP digit 4">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="4" aria-label="OTP digit 5">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="5" aria-label="OTP digit 6">
+          </div>
+          <div id="authForgotOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+          <div class="forgot-resend-row">Didn't receive the code? <button id="authForgotResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+          <button id="authForgotVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+          <div id="authForgotOtpMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotPasswordStep" class="hidden">
+          <h2>New Password</h2>
+          <p class="auth-subtitle">Create a new password for your TradeBook account.</p>
+          <label>New Password<div class="password-input"><input id="authForgotNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="authForgotNewPassword"><span class="eye-icon">◉</span></button></div></label>
+          <div class="forgot-password-rules" data-rules-for="authForgotNewPassword">
+            <span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span>
+          </div>
+          <label>Confirm Password<div class="password-input"><input id="authForgotConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="authForgotConfirmPassword"><span class="eye-icon">◉</span></button></div></label>
+          <div id="authForgotPasswordMatch" class="forgot-match-text"></div>
+          <button id="authForgotChangeBtn" class="primary-btn full-btn" type="button" disabled>Change Password</button>
+          <div id="authForgotPasswordMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotSuccessStep" class="hidden">
+          <div class="forgot-success-icon">✓</div>
+          <h2>Password Reset Successful</h2>
+          <p class="auth-subtitle">Your TradeBook password has been updated successfully.</p>
+          <button id="authForgotDoneBtn" class="primary-btn full-btn" type="button">Back to Login</button>
+        </div>
+
         <p id="authForgotBackRow" class="auth-switch"><button id="backToLoginBtn" class="text-btn" type="button">Back to Login</button></p>
       </div>
     </div>
@@ -190,78 +230,7 @@
   </div>
 
   <div id="emailActionModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="emailActionTitle">Verify Your Email</h2><button id="closeEmailActionModal" class="icon-btn" type="button">×</button></div><p id="emailActionMessage" class="muted-text"></p><div id="emailActionError" class="auth-error"></div><button id="emailActionVerifiedBtn" class="primary-btn full-btn" type="button">I Verified My Email</button></div></div>
-
-  <!-- CHANGE PASSWORD OTP FLOW -->
-  <div id="changePasswordOtpModal" class="modal hidden">
-    <div class="modal-card auth-modal-card action-otp-card">
-      <div class="modal-heading"><h2>Change Password</h2><button id="closeChangePasswordOtpBtn" class="icon-btn" type="button">×</button></div>
-      <div id="changePasswordOtpView" class="action-flow-view">
-        <div class="forgot-flow-icon">🔐</div>
-        <h3>Verify Password Change</h3>
-        <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email to confirm your password change.</p>
-        <div class="otp-box-row" id="changePasswordOtpBoxes">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="0" aria-label="OTP digit 1">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="1" aria-label="OTP digit 2">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="2" aria-label="OTP digit 3">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="3" aria-label="OTP digit 4">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="4" aria-label="OTP digit 5">
-          <input class="action-otp-box" inputmode="numeric" maxlength="1" data-action-otp-index="5" aria-label="OTP digit 6">
-        </div>
-        <div id="changePasswordOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
-        <div class="forgot-resend-row">Didn’t receive the code? <button id="resendChangePasswordOtpBtn" class="text-btn" type="button">Resend Code</button></div>
-        <button id="verifyChangePasswordOtpBtn" class="primary-btn full-btn" type="button">Confirm Password Change</button>
-        <div id="changePasswordOtpError" class="auth-error"></div>
-      </div>
-      <div id="changePasswordSuccessView" class="action-flow-view hidden">
-        <div class="forgot-success-icon">✓</div>
-        <h3>Password Changed Successfully</h3>
-        <p class="muted-text center-text">Your TradeBook password has been updated successfully.</p>
-        <button id="changePasswordSuccessBtn" class="primary-btn full-btn" type="button">Back to Settings</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- DELETE ACCOUNT OTP FLOW -->
-  <div id="deleteAccountModal" class="modal hidden">
-    <div class="modal-card auth-modal-card action-delete-card">
-      <div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div>
-      <div id="deleteAccountFormView" class="action-flow-view">
-        <div class="delete-warning"><strong>This action is permanent!</strong><p>Your TradeBook account, trades, reports and all account data will be permanently deleted. This cannot be undone.</p></div>
-        <label>Current Password<div class="password-input"><input id="deleteCurrentPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="deleteCurrentPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label>
-        <button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Continue to Verification</button>
-        <div id="deleteAccountError" class="auth-error"></div>
-      </div>
-    </div>
-  </div>
-
-  <div id="deleteAccountOtpModal" class="modal hidden">
-    <div class="modal-card auth-modal-card action-otp-card delete-otp-card">
-      <div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountOtpBtn" class="icon-btn" type="button">×</button></div>
-      <div id="deleteAccountOtpView" class="action-flow-view">
-        <div class="forgot-flow-icon delete-flow-icon">⚠</div>
-        <h3>Confirm Account Deletion</h3>
-        <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email. This final step permanently deletes your TradeBook account.</p>
-        <div class="otp-box-row" id="deleteAccountOtpBoxes">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="0" aria-label="OTP digit 1">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="1" aria-label="OTP digit 2">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="2" aria-label="OTP digit 3">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="3" aria-label="OTP digit 4">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="4" aria-label="OTP digit 5">
-          <input class="action-otp-box delete-otp-input" inputmode="numeric" maxlength="1" data-delete-otp-index="5" aria-label="OTP digit 6">
-        </div>
-        <div id="deleteAccountOtpTimer" class="forgot-otp-timer delete-timer">Code expires in 02:00</div>
-        <div class="forgot-resend-row">Didn’t receive the code? <button id="resendDeleteAccountOtpBtn" class="text-btn" type="button">Resend Code</button></div>
-        <button id="verifyDeleteAccountOtpBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button>
-        <div id="deleteAccountOtpError" class="auth-error"></div>
-      </div>
-      <div id="deleteAccountSuccessView" class="action-flow-view hidden">
-        <div class="forgot-success-icon">✓</div>
-        <h3>Account Deleted</h3>
-        <p class="muted-text center-text">Your TradeBook account has been deleted successfully.</p>
-        <button id="deleteAccountSuccessBtn" class="primary-btn full-btn" type="button">Go to Login</button>
-      </div>
-    </div>
-  </div>
+  <div id="deleteAccountModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div><div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div><button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button><div id="deleteAccountError" class="auth-error"></div></div></div>
   <div id="passwordModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="passwordModalTitle">Change Password</h2><button id="closePasswordModal" class="icon-btn">×</button></div>
     <div id="currentPasswordView" class="hidden"><p class="muted-text">For security, TradeBook never stores your password in readable form, so the current password cannot be revealed after login.</p><div class="password-note">Use <strong>Change Password</strong> to set a new password.</div></div>
     <form id="changePasswordForm" class="hidden"><label>Current Password<div class="password-input"><input id="changeCurrentPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="changeCurrentPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>New Password<div class="password-input"><input id="changeNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>Confirm New Password<div class="password-input"><input id="changeConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><div class="password-rules" data-rules-for="changeNewPassword"><strong>Password must contain:</strong><span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span></div><button class="primary-btn full-btn" type="submit">Update Password</button><div id="changePasswordError" class="auth-error"></div></form>
@@ -682,7 +651,7 @@
   <div id="confirmModal" class="modal hidden"><div class="modal-card"><h3 id="confirmTitle">Confirm Action</h3><p id="confirmMessage"></p><div class="form-actions"><button id="confirmYesBtn" class="danger-btn">Confirm</button><button id="confirmNoBtn" class="secondary-btn">Cancel</button></div></div></div>
   <div id="toast" class="toast" role="status"></div>
   <script src="brevo-config.js?v=20261125-tradebook-brevo-otp-v1"></script>
-  <script src="app.js?v=20261124-tradebook-forgot-otp-v3"></script>
+  <script src="app.js?v=20261126-tradebook-forgot-otp-v4"></script>
   <script>
     /* ==========================================================
        GUARANTEED MOBILE NAVIGATION BRIDGE
@@ -838,7 +807,7 @@
   <script>
     if ("serviceWorker" in navigator) {
       window.addEventListener("load", () => {
-        navigator.serviceWorker.register("./service-worker.js?v=20261124-tradebook-forgot-otp-v3", { scope: "./" })
+        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-forgot-otp-v4", { scope: "./" })
           .catch(err => console.warn("TradeBook service worker registration failed:", err));
       });
     }

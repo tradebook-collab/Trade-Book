@@ -1,23 +1,11 @@
-TRADEBOOK - BREVO OTP + CLOUDFLARE WORKER SETUP
+TRADEBOOK - BREVO OTP SETUP
 
-Frontend:
-- GitHub Pages origin: https://tradebook-collab.github.io
-- Worker endpoint: https://tradebook-otp.tradebook2009.workers.dev/send-otp
-- brevo-config.js contains only the public Worker URL; do not put the Brevo API key in GitHub Pages.
+1. Open brevo-config.js.
+2. Set apiKey to your Brevo API key.
+3. Set senderEmail to the VERIFIED sender email in Brevo.
+4. Deploy the files.
 
-Cloudflare Worker:
-1. Deploy worker.js to the tradebook-otp Worker.
-2. Create the Worker secret BREVO_API_KEY with your Brevo API key.
-3. Keep the verified sender email as tradebook2009@gmail.com.
-4. Allowed frontend origin is https://tradebook-collab.github.io.
+IMPORTANT SECURITY NOTE
+The Brevo API documentation says API keys are secrets and should not be exposed in client-side code or committed to public repositories. This GitHub Pages version therefore ships with placeholders only. A production-safe setup needs a server-side endpoint (for example a Cloud Function/server) that stores BREVO_API_KEY privately and sends the OTP.
 
-OTP types:
-- reset -> TradeBook Password Reset OTP
-- change -> TradeBook Password Change OTP
-- delete -> TradeBook Account Deletion OTP
-\Each OTP is 6 digits and expires in 2 minutes. Resend invalidates the previous code.
-
-Change Password: current password -> re-authentication -> separate OTP page -> verify OTP -> update password -> success page. Wrong current password shows “Current password is wrong.”
-Delete Account: permanent warning + current password -> re-authentication -> separate deletion OTP page -> verify OTP -> permanently delete Firebase account -> success page.
-Password rules turn green with a check mark individually while typing in Sign Up and Change Password.
-IndexedDB/trading data logic is preserved.
+OTP behavior remains: 6 digits, 2-minute expiry, Resend Code invalidates the previous code, then correct OTP opens New Password. IndexedDB/trading data logic is unchanged.
