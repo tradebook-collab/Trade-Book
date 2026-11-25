@@ -1,29 +1,24 @@
-TRADEBOOK - CLOUDFLARE OTP WORKER SETUP
+TradeBook OTP setup
 
-1. Deploy worker.js as a Cloudflare Worker.
+1. Frontend endpoint:
+https://tradebook-otp.tradebook2009.workers.dev/send-otp
 
-2. In the Worker settings, add these encrypted Secrets:
-   BREVO_API_KEY = your Brevo API key
-   SENDER_EMAIL = your verified Brevo sender email
+2. Cloudflare Worker:
+Deploy worker.js from this package to the Worker named tradebook-otp.
 
-3. Optional Worker variable:
-   SENDER_NAME = TradeBook
+3. Required Cloudflare secret:
+BREVO_API_KEY = your Brevo API key
 
-4. The Worker URL is already set in brevo-config.js as:
-   https://tradebook-otp.tradebook2009.workers.dev/send-otp
-   Change it only if your Worker URL is different.
+4. Brevo sender:
+tradebook2009@gmail.com must be a verified sender in Brevo.
 
-5. Deploy the TradeBook files to GitHub Pages.
+5. GitHub Pages:
+The allowed frontend origin is:
+https://tradebook2009.github.io
 
-6. Open the Worker root URL. It should return JSON similar to:
-   {"success":true,"message":"Trade Book OTP Worker is online"}
+Important:
+The frontend app.js sends JSON in this form:
+{ "to": "user@example.com", "otp": "123456" }
 
-7. Test TradeBook Settings -> Forgot Password -> Send OTP.
-
-IMPORTANT:
-- Never put BREVO_API_KEY inside app.js, brevo-config.js, index.html, or GitHub.
-- The browser sends only the email address and generated 6-digit OTP to the Worker.
-- The Worker keeps the Brevo API key private.
-- OTP expires after 2 minutes in the TradeBook UI.
-- Resend Code invalidates the previous OTP in the current browser session.
-- IndexedDB/trading data logic is unchanged.
+The Cloudflare worker.js in this package is written to accept exactly that request.
+Do not replace it with a Worker that expects only { "email": ... } or generates a different OTP contract.
