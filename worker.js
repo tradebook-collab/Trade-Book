@@ -208,21 +208,35 @@ function pemToArrayBuffer(pem) {
       (value.startsWith("'") && value.endsWith("'"))) {
     value = value.slice(1, -1);
   }
-  value = value.replaceAll("\\n", "\n");
+  value = value
+    .replace(/^\\uFEFF/, "")
+    .replaceAll("\\n", "\n")
+    .trim();
 
   const base64 = value
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\s+/g, "")
+    .replace(/\\s+/g, "")
     .trim();
 
   if (!base64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
     throw new Error("FIREBASE_PRIVATE_KEY is not a valid base64 PKCS#8 private key.");
   }
 
+  // Some secret editors/copy operations can remove terminal padding.
+  // Restore only the missing Base64 padding before calling atob().
+  const remainder = base64.length % 4;
+  if (remainder === 1) {
+    throw new Error("FIREBASE_PRIVATE_KEY has invalid Base64 length. Re-enter the complete private key.");
+  }
+  const paddedBase64 =
+    remainder === 2 ? `${base64}==` :
+    remainder === 3 ? `${base64}=` :
+    base64;
+
   let binary;
   try {
-    binary = atob(base64);
+    binary = atob(paddedBase64);
   } catch (_) {
     throw new Error("FIREBASE_PRIVATE_KEY could not be decoded. Re-enter the complete private key including BEGIN/END lines, without surrounding quotes.");
   }
