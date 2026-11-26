@@ -216,7 +216,7 @@ function pemToArrayBuffer(pem) {
   const base64 = value
     .replace(/-----BEGIN PRIVATE KEY-----/g, "")
     .replace(/-----END PRIVATE KEY-----/g, "")
-    .replace(/\\s+/g, "")
+    .replace(/\s+/g, "")
     .trim();
 
   if (!base64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
