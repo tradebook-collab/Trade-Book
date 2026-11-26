@@ -1,0 +1,62 @@
+name: Build TradeBook APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main", "master"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.7"
+
+      - name: Copy current TradeBook web files into Android assets
+        shell: bash
+        run: |
+          rm -rf android-app/app/src/main/assets/web
+          mkdir -p android-app/app/src/main/assets/web
+          cp index.html app.js style.css manifest.json service-worker.js              firebase-config.js brevo-config.js verify.html worker.js              apk-install.js              android-app/app/src/main/assets/web/
+          cp icon-192.png icon-512.png favicon-64.png              android-app/app/src/main/assets/web/
+
+      - name: Build APK
+        working-directory: android-app
+        run: gradle :app:assembleDebug --no-daemon
+
+      - name: Copy APK
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp android-app/app/build/outputs/apk/debug/app-debug.apk dist/TradeBook.apk
+
+      - name: Upload workflow artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: TradeBook-APK
+          path: dist/TradeBook.apk
+
+      - name: Publish latest APK release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: apk-latest
+          name: TradeBook APK
+          prerelease: true
+          make_latest: false
+          files: dist/TradeBook.apk
+          fail_on_unmatched_files: true
