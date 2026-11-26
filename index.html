@@ -13,7 +13,7 @@
   <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
   <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
   <title>TradeBook</title>
-  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v9">
+  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v10">
   <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
@@ -251,6 +251,23 @@
   <div id="passwordModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="passwordModalTitle">Change Password</h2><button id="closePasswordModal" class="icon-btn">×</button></div>
     <div id="currentPasswordView" class="hidden"><p class="muted-text">For security, TradeBook never stores your password in readable form, so the current password cannot be revealed after login.</p><div class="password-note">Use <strong>Change Password</strong> to set a new password.</div></div>
     <form id="changePasswordForm" class="hidden"><label>Current Password<div class="password-input"><input id="changeCurrentPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="changeCurrentPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>New Password<div class="password-input"><input id="changeNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>Confirm New Password<div class="password-input"><input id="changeConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><div class="password-rules" data-rules-for="changeNewPassword"><strong>Password must contain:</strong><span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span></div><button class="primary-btn full-btn" type="submit">Update Password</button><div id="changePasswordError" class="auth-error"></div></form>
+    <div id="changePasswordOtpView" class="hidden">
+      <h3 class="change-otp-title">Verify OTP</h3>
+      <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email.</p>
+      <div class="otp-box-row" id="changePasswordOtpBoxes">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="0" aria-label="OTP digit 1">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="1" aria-label="OTP digit 2">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="2" aria-label="OTP digit 3">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="3" aria-label="OTP digit 4">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="4" aria-label="OTP digit 5">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="5" aria-label="OTP digit 6">
+      </div>
+      <div id="changePasswordOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+      <div class="forgot-resend-row">Didn't receive the code? <button id="changePasswordOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+      <button id="changePasswordOtpVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+      <div id="changePasswordOtpError" class="auth-error"></div>
+      <button id="changePasswordOtpBackBtn" class="text-btn full-btn" type="button">Back to Change Password</button>
+    </div>
   </div></div>
   <header class="topbar"><button id="openDrawerBtn" class="icon-btn menu-open-btn" aria-label="Menu">☰</button>
     <div class="brand">
@@ -352,6 +369,7 @@
           <div class="form-panel"><h3>Notes &amp; Attachments</h3><div class="form-grid" id="attachmentFieldsContainer"></div><div id="customAttachmentFields"></div></div>
           <div class="form-actions"><button type="submit" id="saveTradeBtn" class="primary-btn">Save Trade</button><button type="button" id="resetTradeBtn" class="secondary-btn">Reset</button></div>
         </form>
+
       </section>
 
       <section id="tradeJournalSection" class="page-section">
@@ -621,14 +639,13 @@
         </div>
 
         <div class="graph-actions">
-          <button type="button" id="generateGraphBtn" class="primary-btn">Generate Chart</button>
           <button type="button" id="exportGraphPdfBtn" class="graph-pdf-btn">Export as PDF</button>
         </div>
 
         <div id="graphResult" class="graph-result">
           <div class="graph-placeholder">
             <strong>Bar Chart</strong>
-            <span>Select trading mode, period and range, then click “Generate Chart”.</span>
+            <span>The chart updates automatically when your trading data changes.</span>
           </div>
         </div>
 

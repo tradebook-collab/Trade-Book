@@ -201,33 +201,35 @@ function base64UrlEncode(input) {
 
 
 function pemToArrayBuffer(pem) {
-  const base64 =
-    pem
-      .replace(
-        "-----BEGIN PRIVATE KEY-----",
-        ""
-      )
-      .replace(
-        "-----END PRIVATE KEY-----",
-        ""
-      )
-      .replace(/\s+/g, "");
+  let value = String(pem || "").trim();
 
-  const binary =
-    atob(base64);
+  // Cloudflare secrets may be pasted with surrounding quotes or literal \n  // sequences. Normalize both forms before decoding the PKCS#8 key.
+  if ((value.startsWith("\"") && value.endsWith("\"")) ||
+      (value.startsWith("'") && value.endsWith("'"))) {
+    value = value.slice(1, -1);
+  }
+  value = value.replaceAll("\\n", "\n");
 
-  const bytes =
-    new Uint8Array(
-      binary.length
-    );
+  const base64 = value
+    .replace(/-----BEGIN PRIVATE KEY-----/g, "")
+    .replace(/-----END PRIVATE KEY-----/g, "")
+    .replace(/\s+/g, "")
+    .trim();
 
-  for (
-    let i = 0;
-    i < binary.length;
-    i++
-  ) {
-    bytes[i] =
-      binary.charCodeAt(i);
+  if (!base64 || !/^[A-Za-z0-9+/]+={0,2}$/.test(base64)) {
+    throw new Error("FIREBASE_PRIVATE_KEY is not a valid base64 PKCS#8 private key.");
+  }
+
+  let binary;
+  try {
+    binary = atob(base64);
+  } catch (_) {
+    throw new Error("FIREBASE_PRIVATE_KEY could not be decoded. Re-enter the complete private key including BEGIN/END lines, without surrounding quotes.");
+  }
+
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) {
+    bytes[i] = binary.charCodeAt(i);
   }
 
   return bytes.buffer;
@@ -1029,7 +1031,7 @@ ignore this email.`,
 
 
       if (
-        !["reset", "login"].includes(type)
+        !["reset", "login", "change"].includes(type)
       ) {
         return jsonResponse(
           {
@@ -1107,6 +1109,17 @@ ignore this email.`,
           {
             success: true,
             message: "Login OTP verified successfully"
+          },
+          200,
+          origin
+        );
+      }
+
+      if (type === "change") {
+        return jsonResponse(
+          {
+            success: true,
+            message: "Password change OTP verified successfully"
           },
           200,
           origin
