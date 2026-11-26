@@ -5105,13 +5105,80 @@ function renderGraphLineChart(data,title,subtitle){
     svg+=`<text x="${p.x}" y="${H-45}" text-anchor="middle" fill="#edf3fc" font-size="11">${escapeHtml(d.label)}</text>`;
   });
   svg+=`</svg>`;
-  return `<div class="graph-title">${escapeHtml(title)}</div><div class="graph-subtitle">${escapeHtml(subtitle)}</div><div class="graph-svg-wrap graph-line-svg-wrap">${svg}</div><div class="graph-legend"><span><i class="net"></i>Net Profit &amp; Loss</span></div>`;
+  return `<div class="graph-title">${escapeHtml(title)}</div><div class="graph-subtitle">${escapeHtml(subtitle)}</div><div class="graph-svg-wrap graph-line-svg-wrap">${svg}</div><div class="graph-bar-popup" id="graphLinePopup" role="status" aria-live="polite" hidden></div><div class="graph-legend"><span><i class="net"></i>Net Profit &amp; Loss</span></div>`;
 }
 
 function setupGraphLineInteractions(){
-  const result=$("graphResult");if(!result)return;
+  const result=$("graphResult");
+  const popup=$("graphLinePopup");
+  if(!result || !popup)return;
+
+  const closePopup=()=>{
+    popup.hidden=true;
+    popup.classList.remove("visible");
+    delete popup.dataset.activePoint;
+  };
+
+  const showPopup=(point)=>{
+    const label=point.dataset.label || "";
+    const value=Number(point.dataset.value || 0);
+    popup.innerHTML=`<div class="graph-bar-popup-month">${escapeHtml(label)}</div>
+      <div class="graph-bar-popup-type">Net Profit &amp; Loss</div>
+      <div class="graph-bar-popup-value">${escapeHtml(graphMoney(value))}</div>`;
+    popup.hidden=false;
+    popup.classList.add("visible");
+    popup.style.width="max-content";
+    popup.style.maxWidth="150px";
+    popup.style.position="fixed";
+
+    const pointRect=point.getBoundingClientRect();
+    const popupWidth=popup.offsetWidth;
+    const popupHeight=popup.offsetHeight;
+    const viewportGap=7;
+    const edgeGap=6;
+
+    let left=pointRect.left+(pointRect.width/2)-(popupWidth/2);
+    let top=pointRect.top-popupHeight-viewportGap;
+
+    left=Math.max(edgeGap,Math.min(left,window.innerWidth-popupWidth-edgeGap));
+    if(top<edgeGap) top=pointRect.bottom+viewportGap;
+
+    popup.style.left=`${Math.round(left)}px`;
+    popup.style.top=`${Math.round(top)}px`;
+  };
+
   result.querySelectorAll(".graph-line-point").forEach(point=>{
-    point.addEventListener("click",()=>showToast(`${point.dataset.label||""}: ${graphMoney(Number(point.dataset.value||0))}`));
+    point.addEventListener("click",event=>{
+      event.stopPropagation();
+      if(!popup.hidden && popup.dataset.activePoint===point.dataset.label){
+        closePopup();
+        return;
+      }
+      popup.dataset.activePoint=point.dataset.label || "";
+      showPopup(point);
+    });
+    point.addEventListener("keydown",event=>{
+      if(event.key==="Enter" || event.key===" "){
+        event.preventDefault();
+        point.click();
+      }
+    });
+  });
+
+  const repositionPopup=()=>{
+    if(!popup.hidden && popup.dataset.activePoint!==undefined){
+      const active=Array.from(result.querySelectorAll(".graph-line-point"))
+        .find(point=>(point.dataset.label || "")===popup.dataset.activePoint);
+      if(active) showPopup(active);
+    }
+  };
+
+  result.addEventListener("scroll",repositionPopup,{passive:true});
+  window.addEventListener("resize",repositionPopup,{passive:true});
+  window.addEventListener("scroll",repositionPopup,{passive:true});
+
+  result.addEventListener("click",event=>{
+    if(!event.target.closest(".graph-line-point") && !event.target.closest(".graph-bar-popup")) closePopup();
   });
 }
 
