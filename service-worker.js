@@ -1,11 +1,11 @@
-/* TradeBook PWA Service Worker - v77 */
-const CACHE_NAME = "tradebook-pwa-fix-v13";
+/* TradeBook PWA Service Worker - v78 */
+const CACHE_NAME = "tradebook-pwa-fix-v14";
 const APP_SHELL = [
   "./",
   "./index.html",
-  "./style.css?v=20261127-tradebook-pwa-fix-v13",
-  "./app.js?v=20261127-tradebook-pwa-fix-v13",
-  "./firebase-config.js?v=20261127-tradebook-pwa-fix-v13",
+  "./style.css?v=20261127-tradebook-pwa-fix-v14",
+  "./app.js?v=20261127-tradebook-pwa-fix-v14",
+  "./firebase-config.js?v=20261127-tradebook-pwa-fix-v14",
   "./verify.html",
   "./manifest.json",
   "./icon-192.png",

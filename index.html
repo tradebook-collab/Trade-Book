@@ -249,20 +249,38 @@
   <div id="emailActionModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="emailActionTitle">Verify Your Email</h2><button id="closeEmailActionModal" class="icon-btn" type="button">×</button></div><p id="emailActionMessage" class="muted-text"></p><div id="emailActionError" class="auth-error"></div><button id="emailActionVerifiedBtn" class="primary-btn full-btn" type="button">I Verified My Email</button></div></div>
   <div id="deleteAccountModal" class="modal hidden">
     <div class="modal-card auth-modal-card">
-      <div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div>
-      <div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div>
-      <div id="deletePasswordStep">
+      <div class="modal-heading">
+        <h2>Delete Account</h2>
+        <button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button>
+      </div>
+
+      <!-- STEP 1: WARNING -->
+      <div id="deleteWarningStep">
+        <div class="delete-warning">
+          <strong>Warning</strong>
+          <p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p>
+        </div>
+        <div id="deleteWarningError" class="auth-error"></div>
+        <button id="deleteWarningContinueBtn" class="danger-btn full-btn" type="button">Continue</button>
+      </div>
+
+      <!-- STEP 2: CURRENT PASSWORD -->
+      <div id="deletePasswordStep" class="hidden">
         <label>Current Password
           <div class="password-input">
             <input id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Enter your current password">
-            <button type="button" data-eye-for="deleteAccountPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+            <button type="button" data-eye-for="deleteAccountPassword" aria-label="Show or hide password">
+              <span class="eye-icon" aria-hidden="true">◉</span>
+            </button>
           </div>
         </label>
         <div id="deleteAccountError" class="auth-error"></div>
         <button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Continue</button>
       </div>
+
+      <!-- STEP 3: DELETE OTP -->
       <div id="deleteOtpStep" class="hidden">
-        <h3>Verify Email</h3>
+        <h3>Enter Verification Code</h3>
         <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email.</p>
         <div class="otp-box-row" id="deleteOtpBoxes">
           <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="0" aria-label="OTP digit 1">

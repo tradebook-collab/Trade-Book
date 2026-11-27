@@ -5,12 +5,12 @@
   "description": "Personal trading journal for Intraday, Swing and Long Term trading.",
   "lang": "en",
   "dir": "ltr",
-  "start_url": "/Trade-Book/",
+  "start_url": "/Trade-Book/?source=pwa",
   "scope": "/Trade-Book/",
   "display": "standalone",
   "display_override": [
-    "window-controls-overlay",
-    "standalone"
+    "standalone",
+    "fullscreen"
   ],
   "orientation": "portrait-primary",
   "theme_color": "#0b1220",

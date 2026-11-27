@@ -6280,7 +6280,7 @@ function setupTopbarAndAccountNavigation(){
         showToast("Please log in again before deleting your account.");
         return;
       }
-      $("deleteAccountError").textContent = "";
+      resetDeleteAccountFlow();
       $("deleteAccountModal")?.classList.remove("hidden");
       return;
     }
@@ -6531,20 +6531,205 @@ async function setupTradeBookAuth(){
     $('changePasswordOtpBackBtn')?.addEventListener('click',()=>{pendingChangePassword=null;closeChangePasswordOtpView();});
     setupChangePasswordOtpInputs();
 
-$("closeDeleteAccountModal")?.addEventListener("click",()=>{ clearDeleteAccountOtpTimer(); $("deleteAccountModal")?.classList.add("hidden"); });
-    $("confirmDeleteAccountBtn")?.addEventListener("click",async()=>{
-      $("deleteAccountError").textContent="";
-      try{
-        const user=auth.currentUser; if(!user)return authError("deleteAccountError","Please log in again before deleting your account.");
-        const current=$("deleteAccountPassword")?.value||""; if(!current)return authError("deleteAccountError","Enter your current password.");
-        const credential=firebase.auth.EmailAuthProvider.credential(user.email,current); await user.reauthenticateWithCredential(credential);
-        deleteAccountOtpEmail=user.email||""; await sendDeleteAccountOtp();
-      }catch(e){$("deleteAccountError").textContent=friendlyAuthError(e);}
-    });
-    $("deleteOtpResendBtn")?.addEventListener("click",sendDeleteAccountOtp);
-    $("confirmDeleteAfterOtpBtn")?.addEventListener("click",verifyDeleteAccountOtpAndDelete);
-    setupDeleteAccountOtpInputs();
+$("closeDeleteAccountModal")?.addEventListener("click",()=>{
+  resetDeleteAccountFlow();
+  $("deleteAccountModal")?.classList.add("hidden");
+});
+
+$("deleteWarningContinueBtn")?.addEventListener("click",()=>{
+  $("deleteWarningError").textContent="";
+  $("deleteWarningStep")?.classList.add("hidden");
+  $("deletePasswordStep")?.classList.remove("hidden");
+  $("deleteAccountPassword")?.focus();
+});
+
+$("confirmDeleteAccountBtn")?.addEventListener("click",async()=>{
+  $("deleteAccountError").textContent="";
+  const user=auth?.currentUser;
+  if(!user) return authError("deleteAccountError","Please log in again before deleting your account.");
+  const current=$("deleteAccountPassword")?.value||"";
+  if(!current) return authError("deleteAccountError","Enter your current password.");
+
+  const btn=$("confirmDeleteAccountBtn");
+  if(btn){btn.disabled=true;btn.textContent="Verifying Password...";}
+
+  try{
+    const credential=firebase.auth.EmailAuthProvider.credential(user.email,current);
+    await user.reauthenticateWithCredential(credential);
+
+    deleteAccountOtpEmail=(user.email||"").trim().toLowerCase();
+    const sent=await sendDeleteAccountOtp();
+    if(!sent) return;
+  }catch(e){
+    $("deleteAccountError").textContent=friendlyAuthError(e);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Continue";}
+  }
+});
+
+$("deleteOtpResendBtn")?.addEventListener("click",sendDeleteAccountOtp);
+$("confirmDeleteAfterOtpBtn")?.addEventListener("click",verifyDeleteAccountOtpAndDelete);
+setupDeleteAccountOtpInputs();
   }catch(e){ openAuthGate(); authError('authLoginError','Authentication initialization failed: '+(e?.message||e)); }
+}
+
+
+function clearDeleteAccountOtpTimer(){
+  if(deleteAccountOtpTimer){
+    clearInterval(deleteAccountOtpTimer);
+    deleteAccountOtpTimer=null;
+  }
+}
+
+function startDeleteAccountOtpTimer(){
+  clearDeleteAccountOtpTimer();
+  const timer=$("deleteOtpTimer");
+  const tick=()=>{
+    const remaining=Math.max(0,deleteAccountOtpExpiresAt-Date.now());
+    const seconds=Math.ceil(remaining/1000);
+    const min=String(Math.floor(seconds/60)).padStart(2,"0");
+    const sec=String(seconds%60).padStart(2,"0");
+    if(timer) timer.textContent=`Code expires in ${min}:${sec}`;
+    if(remaining<=0){
+      clearDeleteAccountOtpTimer();
+      if(timer) timer.textContent="Code expired. Please resend OTP.";
+    }
+  };
+  tick();
+  deleteAccountOtpTimer=setInterval(tick,1000);
+}
+
+function clearDeleteAccountOtpBoxes(){
+  document.querySelectorAll("[data-delete-otp-index]").forEach(el=>{el.value="";});
+}
+
+function getDeleteAccountOtp(){
+  return Array.from(document.querySelectorAll("[data-delete-otp-index]"))
+    .map(el=>el.value||"").join("");
+}
+
+function openDeleteAccountOtpView(){
+  $("deleteWarningStep")?.classList.add("hidden");
+  $("deletePasswordStep")?.classList.add("hidden");
+  $("deleteOtpStep")?.classList.remove("hidden");
+  $("deleteOtpError").textContent="";
+  clearDeleteAccountOtpBoxes();
+  startDeleteAccountOtpTimer();
+  document.querySelector('[data-delete-otp-index="0"]')?.focus();
+}
+
+function resetDeleteAccountFlow(){
+  clearDeleteAccountOtpTimer();
+  deleteAccountOtpEmail="";
+  deleteAccountOtpExpiresAt=0;
+  clearDeleteAccountOtpBoxes();
+  $("deleteWarningStep")?.classList.remove("hidden");
+  $("deletePasswordStep")?.classList.add("hidden");
+  $("deleteOtpStep")?.classList.add("hidden");
+  $("deleteWarningError").textContent="";
+  $("deleteAccountError").textContent="";
+  $("deleteOtpError").textContent="";
+  if($("deleteAccountPassword")) $("deleteAccountPassword").value="";
+}
+
+function setupDeleteAccountOtpInputs(){
+  document.querySelectorAll("[data-delete-otp-index]").forEach((input,index)=>{
+    input.addEventListener("input",()=>{
+      input.value=input.value.replace(/\D/g,"").slice(0,1);
+      if(input.value && index<5){
+        document.querySelector(`[data-delete-otp-index="${index+1}"]`)?.focus();
+      }
+    });
+    input.addEventListener("keydown",e=>{
+      if(e.key==="Backspace" && !input.value && index>0){
+        document.querySelector(`[data-delete-otp-index="${index-1}"]`)?.focus();
+      }
+    });
+    input.addEventListener("paste",e=>{
+      e.preventDefault();
+      const text=(e.clipboardData?.getData("text")||"").replace(/\D/g,"").slice(0,6);
+      document.querySelectorAll("[data-delete-otp-index]").forEach((el,i)=>el.value=text[i]||"");
+      const target=Math.min(text.length,5);
+      document.querySelector(`[data-delete-otp-index="${target}"]`)?.focus();
+    });
+  });
+}
+
+async function sendDeleteAccountOtp(){
+  const email=(deleteAccountOtpEmail||auth?.currentUser?.email||"").trim().toLowerCase();
+  if(!isValidEmailForTradeBook(email)){
+    $("deleteOtpError").textContent="Your registered email address is not available. Please log in again.";
+    return false;
+  }
+
+  const otp=String(Math.floor(100000+Math.random()*900000));
+  const btn=$("deleteOtpResendBtn");
+  if(btn){btn.disabled=true;btn.textContent="Sending...";}
+
+  try{
+    const response=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/send-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({to:email,otp,type:"delete"})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok || !data?.success){
+      throw new Error(data?.message||"Could not send account deletion OTP.");
+    }
+
+    deleteAccountOtpEmail=email;
+    deleteAccountOtpExpiresAt=Date.now()+120000;
+    clearDeleteAccountOtpBoxes();
+    openDeleteAccountOtpView();
+    $("deleteOtpError").textContent="Deletion OTP sent to your registered email.";
+    return true;
+  }catch(e){
+    $("deleteOtpError").textContent=e?.message||"Could not send account deletion OTP.";
+    return false;
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Resend OTP";}
+  }
+}
+
+async function verifyDeleteAccountOtpAndDelete(){
+  const otp=getDeleteAccountOtp();
+  $("deleteOtpError").textContent="";
+
+  if(otp.length!==6) return authError("deleteOtpError","Enter the 6-digit OTP.");
+  if(Date.now()>=deleteAccountOtpExpiresAt) return authError("deleteOtpError","OTP expired. Please resend OTP.");
+
+  const btn=$("confirmDeleteAfterOtpBtn");
+  if(btn){btn.disabled=true;btn.textContent="Verifying...";}
+
+  try{
+    const response=await fetch(`${TRADEBOOK_OTP_WORKER_URL}/verify-otp`,{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({email:deleteAccountOtpEmail,otp,type:"delete"})
+    });
+    const data=await response.json().catch(()=>({}));
+    if(!response.ok || !data?.success){
+      throw new Error(data?.message||"Incorrect or expired OTP.");
+    }
+
+    const user=auth?.currentUser;
+    if(!user) throw new Error("Your login session expired. Please log in again.");
+
+    clearDeleteAccountOtpTimer();
+    await user.delete();
+
+    resetDeleteAccountFlow();
+    $("deleteAccountModal")?.classList.add("hidden");
+    closeSettings();
+    tradeBookAuthUser=null;
+    await auth?.signOut().catch(()=>{});
+    alert("Your TradeBook account has been permanently deleted.");
+    openAuthGate("authLoginView");
+  }catch(e){
+    $("deleteOtpError").textContent=friendlyAuthError(e);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent="Confirm Delete Account";}
+  }
 }
 
 async function permanentlyDeleteTradeBookAccount(){
