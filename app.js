@@ -6531,60 +6531,19 @@ async function setupTradeBookAuth(){
     $('changePasswordOtpBackBtn')?.addEventListener('click',()=>{pendingChangePassword=null;closeChangePasswordOtpView();});
     setupChangePasswordOtpInputs();
 
-$('closeDeleteAccountModal')?.addEventListener('click',()=> $('deleteAccountModal')?.classList.add('hidden'));
-    $('confirmDeleteAccountBtn')?.addEventListener('click',async()=>{
-      $('deleteAccountError').textContent='';
+$("closeDeleteAccountModal")?.addEventListener("click",()=>{ clearDeleteAccountOtpTimer(); $("deleteAccountModal")?.classList.add("hidden"); });
+    $("confirmDeleteAccountBtn")?.addEventListener("click",async()=>{
+      $("deleteAccountError").textContent="";
       try{
-        const user=auth.currentUser;
-        if(!user) return;
-        // Keep the existing current-password confirmation first.
-        const current=prompt('For security, enter your current TradeBook password to confirm account deletion:');
-        if(current===null) return;
-        if(!current) return authError('deleteAccountError','Enter your current password.');
-        const credential=firebase.auth.EmailAuthProvider.credential(user.email,current);
-        await user.reauthenticateWithCredential(credential);
-
-        // After the password check, show a separate email-verification step.
-        pendingDeleteAfterEmailVerification = true;
-        try { await sendFirebaseVerificationEmail(user); } catch (emailError) {
-          // If Firebase reports that this already-verified email cannot be sent again,
-          // the account is already email-verified; keep the verification page and allow
-          // the user to confirm there. Other errors are surfaced to the user.
-          const code = emailError?.code || '';
-          if (!code.includes('already-verified')) throw emailError;
-        }
-        $('deleteAccountModal')?.classList.add('hidden');
-        $('emailActionTitle').textContent='Verify Your Email';
-        $('emailActionMessage').textContent='Open the verification link sent to your registered email. After completing it, return to TradeBook and tap “I Verified My Email”.';
-        $('emailActionError').textContent='';
-        $('emailActionVerifiedBtn').textContent='I Verified My Email';
-        $('emailActionModal')?.classList.remove('hidden');
-      }catch(e){ $('deleteAccountError').textContent=friendlyAuthError(e); }
+        const user=auth.currentUser; if(!user)return authError("deleteAccountError","Please log in again before deleting your account.");
+        const current=$("deleteAccountPassword")?.value||""; if(!current)return authError("deleteAccountError","Enter your current password.");
+        const credential=firebase.auth.EmailAuthProvider.credential(user.email,current); await user.reauthenticateWithCredential(credential);
+        deleteAccountOtpEmail=user.email||""; await sendDeleteAccountOtp();
+      }catch(e){$("deleteAccountError").textContent=friendlyAuthError(e);}
     });
-
-    $('closeEmailActionModal')?.addEventListener('click',()=>{
-      pendingDeleteAfterEmailVerification=false;
-      $('emailActionModal')?.classList.add('hidden');
-    });
-
-    $('emailActionVerifiedBtn')?.addEventListener('click',async()=>{
-      if(!pendingDeleteAfterEmailVerification) return;
-      $('emailActionError').textContent='';
-      try{
-        const user=await refreshVerifiedUser();
-        if(!user){
-          pendingDeleteAfterEmailVerification=false;
-          $('emailActionModal')?.classList.add('hidden');
-          openAuthGate('authLoginView');
-          return;
-        }
-        if(!user.emailVerified){
-          $('emailActionError').textContent='Email is not verified yet. Open the verification link and try again.';
-          return;
-        }
-        await permanentlyDeleteTradeBookAccount();
-      }catch(e){ $('emailActionError').textContent=friendlyAuthError(e); }
-    });
+    $("deleteOtpResendBtn")?.addEventListener("click",sendDeleteAccountOtp);
+    $("confirmDeleteAfterOtpBtn")?.addEventListener("click",verifyDeleteAccountOtpAndDelete);
+    setupDeleteAccountOtpInputs();
   }catch(e){ openAuthGate(); authError('authLoginError','Authentication initialization failed: '+(e?.message||e)); }
 }
 
@@ -6592,7 +6551,6 @@ async function permanentlyDeleteTradeBookAccount(){
   const user=auth.currentUser;
   if(!user) return;
   await user.delete();
-  pendingDeleteAfterEmailVerification=false;
   $('emailActionModal')?.classList.add('hidden');
   $('deleteAccountModal')?.classList.add('hidden');
   closeSettings();

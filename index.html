@@ -247,7 +247,38 @@
   </div>
 
   <div id="emailActionModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="emailActionTitle">Verify Your Email</h2><button id="closeEmailActionModal" class="icon-btn" type="button">×</button></div><p id="emailActionMessage" class="muted-text"></p><div id="emailActionError" class="auth-error"></div><button id="emailActionVerifiedBtn" class="primary-btn full-btn" type="button">I Verified My Email</button></div></div>
-  <div id="deleteAccountModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div><div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div><button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button><div id="deleteAccountError" class="auth-error"></div></div></div>
+  <div id="deleteAccountModal" class="modal hidden">
+    <div class="modal-card auth-modal-card">
+      <div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div>
+      <div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div>
+      <div id="deletePasswordStep">
+        <label>Current Password
+          <div class="password-input">
+            <input id="deleteAccountPassword" type="password" autocomplete="current-password" placeholder="Enter your current password">
+            <button type="button" data-eye-for="deleteAccountPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+          </div>
+        </label>
+        <div id="deleteAccountError" class="auth-error"></div>
+        <button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Continue</button>
+      </div>
+      <div id="deleteOtpStep" class="hidden">
+        <h3>Verify Email</h3>
+        <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email.</p>
+        <div class="otp-box-row" id="deleteOtpBoxes">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="0" aria-label="OTP digit 1">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="1" aria-label="OTP digit 2">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="2" aria-label="OTP digit 3">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="3" aria-label="OTP digit 4">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="4" aria-label="OTP digit 5">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-delete-otp-index="5" aria-label="OTP digit 6">
+        </div>
+        <div id="deleteOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+        <div class="forgot-resend-row">Didn’t receive the code? <button id="deleteOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+        <div id="deleteOtpError" class="auth-error"></div>
+        <button id="confirmDeleteAfterOtpBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button>
+      </div>
+    </div>
+  </div>
   <div id="passwordModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="passwordModalTitle">Change Password</h2><button id="closePasswordModal" class="icon-btn">×</button></div>
     <div id="currentPasswordView" class="hidden"><p class="muted-text">For security, TradeBook never stores your password in readable form, so the current password cannot be revealed after login.</p><div class="password-note">Use <strong>Change Password</strong> to set a new password.</div></div>
     <form id="changePasswordForm" class="hidden"><label>Current Password<div class="password-input"><input id="changeCurrentPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="changeCurrentPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>New Password<div class="password-input"><input id="changeNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>Confirm New Password<div class="password-input"><input id="changeConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><div class="password-rules" data-rules-for="changeNewPassword"><strong>Password must contain:</strong><span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span></div><button class="primary-btn full-btn" type="submit">Update Password</button><div id="changePasswordError" class="auth-error"></div></form>

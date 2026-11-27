@@ -29,5 +29,12 @@
       "purpose": "any maskable"
     }
   ],
-  "prefer_related_applications": false
+  "prefer_related_applications": false,
+  "categories": [
+    "finance",
+    "productivity"
+  ],
+  "launch_handler": {
+    "client_mode": "navigate-existing"
+  }
 }

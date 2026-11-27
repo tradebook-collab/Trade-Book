@@ -1045,7 +1045,7 @@ ignore this email.`,
 
 
       if (
-        !["reset", "login", "change"].includes(type)
+        !["reset", "login", "change", "delete"].includes(type)
       ) {
         return jsonResponse(
           {
@@ -1135,6 +1135,15 @@ ignore this email.`,
             success: true,
             message: "Password change OTP verified successfully"
           },
+          200,
+          origin
+        );
+      }
+
+
+      if (type === "delete") {
+        return jsonResponse(
+          { success: true, message: "Account deletion OTP verified successfully" },
           200,
           origin
         );
