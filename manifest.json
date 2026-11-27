@@ -5,7 +5,7 @@
   "description": "Personal trading journal for Intraday, Swing and Long Term trading.",
   "lang": "en",
   "dir": "ltr",
-  "start_url": "/Trade-Book/?source=pwa",
+  "start_url": "/Trade-Book/",
   "scope": "/Trade-Book/",
   "display": "standalone",
   "display_override": [

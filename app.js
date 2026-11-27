@@ -8,6 +8,29 @@
 
 const $ = id => document.getElementById(id);
 
+// Global state for PWA installation and the three-step account deletion flow.
+// The file runs in strict mode, so these must be explicitly declared.
+let deferredInstallPrompt = window.__tradeBookBeforeInstallPrompt || null;
+let deleteAccountOtpEmail = "";
+let deleteAccountOtpExpiresAt = 0;
+let deleteAccountOtpTimer = null;
+
+// Capture the browser event as soon as this script loads. The previous code
+// waited until login and IndexedDB initialization, which could miss it.
+window.addEventListener("beforeinstallprompt", event => {
+  event.preventDefault();
+  deferredInstallPrompt = event;
+  window.__tradeBookBeforeInstallPrompt = event;
+  updateInstallButton();
+});
+
+window.addEventListener("appinstalled", () => {
+  deferredInstallPrompt = null;
+  window.__tradeBookBeforeInstallPrompt = null;
+  updateInstallButton();
+  showToast("TradeBook installed successfully.");
+});
+
 function escapeHtml(value) {
   return String(value ?? "")
     .replace(/&/g, "&amp;")
@@ -27,7 +50,7 @@ function sheetInlineIcon(type) {
 }
 
 // TradeLedger stable build: existing IndexedDB data preserved.
-const TRADELEDGER_BUILD = "20261126-tradebook-login-otp-v10";
+const TRADELEDGER_BUILD = "20261127-tradebook-pwa-delete-otp-v15";
 
 const DB_NAME = "TradeLedgerDB";
 const SETTINGS_KEY = "TradeLedgerColumnSettings";
@@ -5494,9 +5517,6 @@ function setupEventListeners() {
    PWA INSTALL
 ========================================== */
 
-let deferredInstallPrompt = null;
-let pwaInstallListenersReady = false;
-
 function isTradeBookStandalone() {
   return window.matchMedia("(display-mode: standalone)").matches ||
     window.matchMedia("(display-mode: fullscreen)").matches ||
@@ -5504,51 +5524,45 @@ function isTradeBookStandalone() {
 }
 
 function setupPWAInstall() {
-  if (pwaInstallListenersReady) {
-    updateInstallButton();
-    return;
-  }
-  pwaInstallListenersReady = true;
+  const button = $("installAppBtn");
+  if (button && button.dataset.pwaInstallBound !== "1") {
+    button.dataset.pwaInstallBound = "1";
+    button.addEventListener("click", async event => {
+      event.preventDefault();
 
-  // Chrome fires this only when the page meets the browser's installability
-  // requirements. Keep the event so our own Install App button can use it.
-  window.addEventListener("beforeinstallprompt", event => {
-    event.preventDefault();
-    deferredInstallPrompt = event;
-    updateInstallButton();
-  });
+      if (isTradeBookStandalone()) {
+        showToast("TradeBook is already installed.");
+        updateInstallButton();
+        return;
+      }
 
-  window.addEventListener("appinstalled", () => {
-    deferredInstallPrompt = null;
-    updateInstallButton();
-    showToast("TradeBook installed successfully.");
-  });
+      const installEvent = deferredInstallPrompt;
+      if (!installEvent) {
+        // Chrome exposes no public API to open its native install UI directly
+        // unless beforeinstallprompt has been emitted for this page session.
+        showToast("TradeBook's direct install prompt is not available in this browser session. Reload the page in Chrome and try again.");
+        return;
+      }
 
-  $("installAppBtn")?.addEventListener("click", async () => {
-    if (isTradeBookStandalone()) {
-      showToast("TradeBook is already installed.");
-      return;
-    }
-
-    if (deferredInstallPrompt) {
+      // A beforeinstallprompt event can be consumed only once.
+      deferredInstallPrompt = null;
+      window.__tradeBookBeforeInstallPrompt = null;
+      updateInstallButton();
       try {
-        deferredInstallPrompt.prompt();
-        const result = await deferredInstallPrompt.userChoice;
-        if (result?.outcome === "accepted") {
-          deferredInstallPrompt = null;
+        await installEvent.prompt();
+        const choice = await installEvent.userChoice;
+        if (choice?.outcome === "accepted") {
+          showToast("TradeBook installation started.");
+        } else {
+          showToast("Installation was cancelled.");
         }
       } catch (error) {
         console.warn("TradeBook PWA install prompt failed:", error);
+        showToast("Could not open the TradeBook install prompt. Please reload and try again.");
       }
       updateInstallButton();
-      return;
-    }
-
-    // A native prompt cannot be forced by JavaScript if Chrome has not
-    // exposed beforeinstallprompt. Give the user the exact Chrome fallback.
-    showToast("Chrome has not enabled the install prompt yet. Open Chrome menu → Install app.");
-  });
-
+    });
+  }
   updateInstallButton();
 }
 
@@ -6394,11 +6408,10 @@ async function setupTradeBookAuth(){
         return;
       }
       if(!user){ openAuthGate('authLoginView'); return; }
-      if(!user.emailVerified){
-        openAuthGate('authOtpView');
-        authError('authOtpError','A verification email was sent to '+(user.email||'')+'. Open the email and click the verification link, then return here and tap “I Verified My Email”.');
-        return;
-      }
+      // TradeBook login already checks the password and a 6-digit OTP sent to
+      // this account's registered email. Do not block existing unverified
+      // accounts here: that prevented Settings and Delete Account from opening.
+      // The first-time sign-up flow below still retains Firebase email verification.
       closeAuthGate(); syncAccountUI(user); await ensureTradeBookStarted();
     });
 
@@ -6768,6 +6781,10 @@ function openPasswordModal(change){
 function closePasswordModal(){ clearChangePasswordOtpTimer(); pendingChangePassword=null; changePasswordOtpEmail=''; $('changePasswordOtpView')?.classList.add('hidden'); $('changePasswordForm')?.classList.remove('hidden'); $('passwordModal')?.classList.add('hidden'); $('changePasswordForm')?.reset(); clearChangePasswordOtpBoxes(); updatePasswordRules('changeNewPassword'); }
 $('closePasswordModal')?.addEventListener('click',closePasswordModal);
 
-// Start authentication once. The main TradeBook application starts only after a verified login.
+// Bind the in-page install button independently of authentication and database startup.
+setupPWAInstall();
+
+// Start authentication once. Login requires password + email OTP; first-time sign-up
+// continues to use its existing email-verification step.
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',()=>{ setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); },{once:true});
 else { setupTopbarAndAccountNavigation(); setupTradeBookNavigation(); setupTradeBookAuth(); setupForgotPasswordFlow(); }
