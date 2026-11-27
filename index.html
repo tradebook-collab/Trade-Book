@@ -1,0 +1,850 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0b1220">
+  <meta name="application-name" content="TradeBook">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="TradeBook">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png">
+  <link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+  <title>TradeBook</title>
+  <link rel="stylesheet" href="style.css?v=20261126-tradebook-login-otp-v10">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+  <script src="firebase-config.js?v=20261126-tradebook-login-otp-v9"></script>
+
+</head>
+<body>
+  <div id="authGate" class="auth-gate hidden">
+    <div class="auth-card">
+      <div class="auth-brand"><img src="icon-192.png" alt="TradeBook"><h1>TradeBook</h1><p>Trading Journal</p></div>
+      <div id="authLoginView" class="auth-view">
+        <h2>Login</h2><p class="auth-subtitle">Login to your TradeBook account</p>
+        <label>Email / Username<input id="authLoginEmail" type="email" autocomplete="username"></label>
+        <label>Password<div class="password-input"><input id="authLoginPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="authLoginPassword"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label>
+        <div class="auth-row"><label class="remember-row"><input id="authRemember" type="checkbox" checked> Remember me</label><button id="authForgotBtn" class="text-btn" type="button">Forgot Password?</button></div>
+        <button id="authLoginBtn" class="primary-btn full-btn" type="button">Login</button>
+        <div id="authLoginError" class="auth-error"></div>
+        <p class="auth-switch">Don't have an account? <button id="showSignupBtn" class="text-btn" type="button">Create Account</button></p>
+      </div>
+      <div id="authLoginOtpView" class="auth-view hidden">
+        <h2>Login OTP</h2>
+        <p class="auth-subtitle">Enter the 6-digit OTP sent to your registered email.</p>
+        <div class="otp-box-row" id="authLoginOtpBoxes">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="0" aria-label="OTP digit 1">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="1" aria-label="OTP digit 2">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="2" aria-label="OTP digit 3">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="3" aria-label="OTP digit 4">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="4" aria-label="OTP digit 5">
+          <input class="login-otp-box" inputmode="numeric" maxlength="1" data-login-otp-index="5" aria-label="OTP digit 6">
+        </div>
+        <div id="authLoginOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+        <div class="forgot-resend-row">Didn't receive the code? <button id="authLoginOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+        <button id="authLoginOtpVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+        <div id="authLoginOtpError" class="auth-error"></div>
+        <p class="auth-switch"><button id="authLoginOtpBackBtn" class="text-btn" type="button">Back to Login</button></p>
+      </div>
+      <div id="authSignupView" class="auth-view hidden">
+        <h2>Create Account</h2><p class="auth-subtitle">Use your Gmail/email as your username</p>
+        <label>Email<input id="authSignupEmail" type="email" autocomplete="email"></label>
+        <label>Password<div class="password-input"><input id="authSignupPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="authSignupPassword"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label>
+        <label>Confirm Password<div class="password-input"><input id="authSignupConfirm" type="password" autocomplete="new-password"><button type="button" data-eye-for="authSignupConfirm"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label>
+        <div class="password-rules" data-rules-for="authSignupPassword">
+          <strong>Password must contain:</strong>
+          <span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span>
+        </div>
+        <button id="authSignupBtn" class="primary-btn full-btn" type="button">Create Account</button>
+        <div id="authSignupError" class="auth-error"></div>
+        <p class="auth-switch">Already have an account? <button id="showLoginBtn" class="text-btn" type="button">Login</button></p>
+      </div>
+      <div id="authOtpView" class="auth-view hidden">
+        <h2>Verify Your Email</h2><p class="auth-subtitle">Open the verification email sent to your email and click the verification link.</p>
+        <button id="authOtpBtn" class="primary-btn full-btn" type="button">I Verified My Email</button>
+        <div id="authOtpError" class="auth-error"></div>
+      </div>
+      <div id="authForgotView" class="auth-view hidden">
+        <div id="authForgotEmailStep">
+          <h2>Forgot Password</h2>
+          <p class="auth-subtitle">Enter your registered email to receive a secure 6-digit OTP.</p>
+          <label>Email<input id="authResetEmail" type="email" autocomplete="email"></label>
+          <button id="authResetBtn" class="primary-btn full-btn" type="button">Send OTP</button>
+          <div id="authResetMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotOtpStep" class="hidden">
+          <h2>Verify OTP</h2>
+          <p class="auth-subtitle">Enter the 6-digit OTP sent to your email.</p>
+          <div class="otp-box-row" id="authForgotOtpBoxes">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="0" aria-label="OTP digit 1">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="1" aria-label="OTP digit 2">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="2" aria-label="OTP digit 3">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="3" aria-label="OTP digit 4">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="4" aria-label="OTP digit 5">
+            <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-auth-otp-index="5" aria-label="OTP digit 6">
+          </div>
+          <div id="authForgotOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+          <div class="forgot-resend-row">Didn't receive the code? <button id="authForgotResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+          <button id="authForgotVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+          <div id="authForgotOtpMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotPasswordStep" class="hidden">
+          <h2>New Password</h2>
+          <p class="auth-subtitle">Create a new password for your TradeBook account.</p>
+          <label>New Password<div class="password-input"><input id="authForgotNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="authForgotNewPassword"><span class="eye-icon">◉</span></button></div></label>
+          <div class="forgot-password-rules" data-rules-for="authForgotNewPassword">
+            <span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span>
+          </div>
+          <label>Confirm Password<div class="password-input"><input id="authForgotConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="authForgotConfirmPassword"><span class="eye-icon">◉</span></button></div></label>
+          <div id="authForgotPasswordMatch" class="forgot-match-text"></div>
+          <button id="authForgotChangeBtn" class="primary-btn full-btn" type="button" disabled>Change Password</button>
+          <div id="authForgotPasswordMessage" class="auth-error"></div>
+        </div>
+
+        <div id="authForgotSuccessStep" class="hidden">
+          <div class="forgot-success-icon">✓</div>
+          <h2>Password Reset Successful</h2>
+          <p class="auth-subtitle">Your TradeBook password has been updated successfully.</p>
+          <button id="authForgotDoneBtn" class="primary-btn full-btn" type="button">Back to Login</button>
+        </div>
+
+        <p id="authForgotBackRow" class="auth-switch"><button id="backToLoginBtn" class="text-btn" type="button">Back to Login</button></p>
+      </div>
+    </div>
+  </div>
+  <div id="sideDrawer" class="side-drawer hidden">
+    <div class="drawer-head"><img src="icon-192.png" alt="TradeBook"><button id="closeDrawerBtn" class="icon-btn">×</button></div>
+    <div class="drawer-profile"><div id="drawerAvatar" class="drawer-avatar">E</div><div><strong id="drawerName">User</strong><span id="drawerEmail">email</span></div></div>
+    <button class="drawer-nav-btn" data-drawer-action="home">⌂ <span>Home</span></button>
+    <button class="drawer-nav-btn" data-drawer-action="settings">⚙ <span>Settings</span></button>
+  </div>
+  <div id="drawerBackdrop" class="drawer-backdrop hidden"></div>
+  <div id="accountSettingsModal" class="account-settings hidden">
+    <div class="settings-card"><div class="settings-header"><button id="closeSettingsBtn" class="icon-btn">‹</button><h2>Settings</h2></div>
+      <div class="settings-profile">
+        <div class="profile-avatar-wrap">
+          <div class="drawer-avatar" id="settingsAvatar">E</div>
+          <button id="editProfileBtn" class="profile-edit-btn" type="button" aria-label="Edit profile">✎</button>
+        </div>
+        <div><strong id="settingsName">User</strong><span id="settingsEmail">email</span></div>
+      </div>
+      <button class="settings-row" data-settings-action="username"><span>Username</span><b id="settingsUsername">email</b><i>›</i></button>
+      <button class="settings-row" data-settings-action="password"><span>Password</span><b>••••••••</b><i>›</i></button>
+      <div id="passwordOptions" class="settings-subpanel hidden">
+        <button class="settings-row" data-settings-action="change-password"><span>Change Password</span><i>›</i></button>
+        <button class="settings-row" data-settings-action="forgot-password"><span>Forgot Password?</span><i>›</i></button>
+      </div>
+      <button id="logoutBtn" class="settings-row logout-row"><span>Logout</span><i>⇥</i></button>
+      <button id="deleteAccountBtn" class="settings-row delete-row"><span>Delete Account</span><i>⌫</i></button>
+    </div>
+  </div>
+
+  <div id="profileEditPage" class="profile-edit-page hidden">
+    <div class="profile-edit-card">
+      <div class="profile-edit-header">
+        <button id="closeProfileEditBtn" class="icon-btn" type="button" aria-label="Back">‹</button>
+        <h2>Edit Profile</h2>
+      </div>
+      <div class="profile-edit-avatar-section">
+        <div class="profile-edit-avatar-wrap">
+          <div class="drawer-avatar profile-large-avatar" id="profileEditAvatar">E</div>
+          <label class="profile-camera-btn" for="profilePhotoInput" aria-label="Upload profile photo">📷</label>
+        </div>
+        <input id="profilePhotoInput" type="file" accept="image/png,image/jpeg,image/webp" hidden>
+        <p class="muted-text">Add or change your profile photo</p>
+      </div>
+      <label class="profile-name-label">Name
+        <input id="profileNameInput" type="text" maxlength="60" autocomplete="name" placeholder="Enter your name">
+      </label>
+      <div id="profileEditError" class="auth-error"></div>
+      <button id="saveProfileBtn" class="primary-btn full-btn" type="button">Save Profile</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS FORGOT PASSWORD: EMAIL -> OTP -> NEW PASSWORD -->
+  <div id="forgotPasswordFlowModal" class="modal hidden">
+    <div class="modal-card auth-modal-card forgot-flow-card">
+      <div class="modal-heading">
+        <h2 id="forgotFlowTitle">Forgot Password</h2>
+        <button id="closeForgotFlowBtn" class="icon-btn" type="button" aria-label="Close">×</button>
+      </div>
+
+      <div id="forgotFlowEmailView" class="forgot-flow-view">
+        <div class="forgot-flow-icon">✉</div>
+        <h3>Reset your password</h3>
+        <p class="muted-text center-text">Enter your registered email address. We’ll send a 6-digit OTP.</p>
+        <label>Email Address
+          <input id="forgotFlowEmail" type="email" autocomplete="email" readonly>
+        </label>
+        <button id="forgotFlowSendOtpBtn" class="primary-btn full-btn" type="button">Send OTP</button>
+        <div id="forgotFlowEmailError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowOtpView" class="forgot-flow-view hidden">
+        <div class="forgot-flow-icon">🔐</div>
+        <h3>Verify OTP</h3>
+        <p class="muted-text center-text">Enter the 6-digit code sent to your registered email.</p>
+        <div class="otp-box-row" id="forgotOtpBoxes">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="0" aria-label="OTP digit 1">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="1" aria-label="OTP digit 2">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="2" aria-label="OTP digit 3">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="3" aria-label="OTP digit 4">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="4" aria-label="OTP digit 5">
+          <input class="forgot-otp-box" inputmode="numeric" maxlength="1" data-otp-index="5" aria-label="OTP digit 6">
+        </div>
+        <div id="forgotOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+        <div class="forgot-resend-row">Didn’t receive the code? <button id="forgotFlowResendBtn" class="text-btn" type="button">Resend Code</button></div>
+        <button id="forgotFlowVerifyOtpBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+        <div id="forgotFlowOtpError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowPasswordView" class="forgot-flow-view hidden">
+        <div class="forgot-flow-icon">🔒</div>
+        <h3>Set New Password</h3>
+        <p class="muted-text center-text">Your password must satisfy every requirement below.</p>
+        <label>New Password
+          <div class="password-input">
+            <input id="forgotNewPassword" type="password" autocomplete="new-password">
+            <button type="button" data-eye-for="forgotNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+          </div>
+        </label>
+        <div class="forgot-password-rules" data-rules-for="forgotNewPassword">
+          <strong>Password must contain:</strong>
+          <span data-rule="length">○ Minimum 8 characters</span>
+          <span data-rule="upper">○ 1 uppercase letter</span>
+          <span data-rule="lower">○ 1 lowercase letter</span>
+          <span data-rule="number">○ 1 number</span>
+          <span data-rule="special">○ 1 special character</span>
+        </div>
+        <div class="forgot-strength-wrap">
+          <div id="forgotStrengthBars" class="forgot-strength-bars"><span></span><span></span><span></span><span></span></div>
+          <div id="forgotStrengthText" class="forgot-strength-text bad">Password strength: Bad</div>
+        </div>
+        <label>Confirm Password
+          <div class="password-input">
+            <input id="forgotConfirmPassword" type="password" autocomplete="new-password">
+            <button type="button" data-eye-for="forgotConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true">◉</span></button>
+          </div>
+        </label>
+        <div id="forgotFlowPasswordMatch" class="forgot-match-text"></div>
+        <button id="forgotFlowChangePasswordBtn" class="primary-btn full-btn" type="button" disabled>Change Password</button>
+        <div id="forgotFlowPasswordError" class="auth-error"></div>
+      </div>
+
+      <div id="forgotFlowSuccessView" class="forgot-flow-view hidden">
+        <div class="forgot-success-icon">✓</div>
+        <h3>Password changed successfully</h3>
+        <p class="muted-text center-text">Your TradeBook password has been updated.</p>
+        <button id="forgotFlowDoneBtn" class="primary-btn full-btn" type="button">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="emailActionModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="emailActionTitle">Verify Your Email</h2><button id="closeEmailActionModal" class="icon-btn" type="button">×</button></div><p id="emailActionMessage" class="muted-text"></p><div id="emailActionError" class="auth-error"></div><button id="emailActionVerifiedBtn" class="primary-btn full-btn" type="button">I Verified My Email</button></div></div>
+  <div id="deleteAccountModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2>Delete Account</h2><button id="closeDeleteAccountModal" class="icon-btn" type="button">×</button></div><div class="delete-warning"><strong>Warning</strong><p>Your TradeBook account and its Firebase account will be permanently deleted. This action cannot be undone.</p></div><button id="confirmDeleteAccountBtn" class="danger-btn full-btn" type="button">Confirm Delete Account</button><div id="deleteAccountError" class="auth-error"></div></div></div>
+  <div id="passwordModal" class="modal hidden"><div class="modal-card auth-modal-card"><div class="modal-heading"><h2 id="passwordModalTitle">Change Password</h2><button id="closePasswordModal" class="icon-btn">×</button></div>
+    <div id="currentPasswordView" class="hidden"><p class="muted-text">For security, TradeBook never stores your password in readable form, so the current password cannot be revealed after login.</p><div class="password-note">Use <strong>Change Password</strong> to set a new password.</div></div>
+    <form id="changePasswordForm" class="hidden"><label>Current Password<div class="password-input"><input id="changeCurrentPassword" type="password" autocomplete="current-password"><button type="button" data-eye-for="changeCurrentPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>New Password<div class="password-input"><input id="changeNewPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeNewPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><label>Confirm New Password<div class="password-input"><input id="changeConfirmPassword" type="password" autocomplete="new-password"><button type="button" data-eye-for="changeConfirmPassword" aria-label="Show or hide password"><span class="eye-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.8"></circle><path d="M4 4 20 20"></path></svg></span></button></div></label><div class="password-rules" data-rules-for="changeNewPassword"><strong>Password must contain:</strong><span data-rule="length">○ Minimum 8 characters</span><span data-rule="upper">○ 1 uppercase letter</span><span data-rule="lower">○ 1 lowercase letter</span><span data-rule="number">○ 1 number</span><span data-rule="special">○ 1 special character</span></div><button class="primary-btn full-btn" type="submit">Update Password</button><div id="changePasswordError" class="auth-error"></div></form>
+    <div id="changePasswordOtpView" class="hidden">
+      <h3 class="change-otp-title">Verify OTP</h3>
+      <p class="muted-text center-text">Enter the 6-digit OTP sent to your registered email.</p>
+      <div class="otp-box-row" id="changePasswordOtpBoxes">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="0" aria-label="OTP digit 1">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="1" aria-label="OTP digit 2">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="2" aria-label="OTP digit 3">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="3" aria-label="OTP digit 4">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="4" aria-label="OTP digit 5">
+        <input class="change-password-otp-box" inputmode="numeric" maxlength="1" data-change-otp-index="5" aria-label="OTP digit 6">
+      </div>
+      <div id="changePasswordOtpTimer" class="forgot-otp-timer">Code expires in 02:00</div>
+      <div class="forgot-resend-row">Didn't receive the code? <button id="changePasswordOtpResendBtn" class="text-btn" type="button">Resend OTP</button></div>
+      <button id="changePasswordOtpVerifyBtn" class="primary-btn full-btn" type="button">Verify OTP</button>
+      <div id="changePasswordOtpError" class="auth-error"></div>
+      <button id="changePasswordOtpBackBtn" class="text-btn full-btn" type="button">Back to Change Password</button>
+    </div>
+  </div></div>
+  <header class="topbar"><button id="openDrawerBtn" class="icon-btn menu-open-btn" aria-label="Menu">☰</button>
+    <div class="brand">
+      <div class="brand-logo-wrap"><img class="brand-logo" src="icon-192.png" alt="TradeBook logo"></div>
+      <div><h1>TradeBook</h1><small>Trading Journal</small></div>
+    </div>
+    <div class="topbar-actions"><button id="notificationBtn" class="icon-btn" aria-label="Notifications">🔔</button><button id="newTradeBtn" class="primary-btn" aria-label="Home" title="Go to Home">Home</button></div>
+  </header>
+
+
+  <!-- ==========================================
+       TRADEBOOK HOME / MAIN DASHBOARD
+       Custom mobile-first landing screen
+  ========================================== -->
+  <section id="tradeBookHome" class="tradebook-home">
+    <div class="home-greeting">
+      <div>
+        <span class="home-hello">Hello,</span>
+        <h2 id="homeUserName">Eldhos Aliyas</h2>
+      </div>
+    </div>
+    <div class="home-option-grid">
+      <button class="home-option" data-home-mode="intraday">
+        <span class="home-option-icon icon-intraday" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 5v14M16 5v14"/></svg></span><span>Intraday Trading</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="swing">
+        <span class="home-option-icon icon-swing" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 17 9 12l3 3 7-8"/><path d="M15 7h4v4"/></svg></span><span>Swing Trading</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="longterm">
+        <span class="home-option-icon icon-longterm" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18h14"/><path d="M6 15V9h3v6M11 15V6h3v9M16 15v-3h3v3"/></svg></span><span>Long Term Trading</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="graph">
+        <span class="home-option-icon icon-graph" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 18V5"/><path d="M4 18h16"/><path d="m6 15 4-4 3 2 5-6"/></svg></span><span>Graph &amp; Chart</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="broker">
+        <span class="home-option-icon icon-broker" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8M8 13h8M8 17h4"/></svg></span><span>Broker</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="install">
+        <span class="home-option-icon">⇩</span><span>Install App</span><b>›</b>
+      </button>
+      <button class="home-option" data-home-mode="backup">
+        <span class="home-option-icon">☁</span><span>Backup</span><b>›</b>
+      </button>
+    </div>
+  </section>
+
+  <section id="notificationsPage" class="notifications-page hidden">
+    <div class="notifications-header">
+      <button id="notificationsBackBtn" class="icon-btn" type="button" aria-label="Back">‹</button>
+      <div><h2>Notifications</h2><p>TradeBook updates</p></div>
+    </div>
+    <div class="notification-card">
+      <div class="notification-icon">🔔</div>
+      <div>
+        <h3>Future TradeBook Updates</h3>
+        <p>New features, important announcements and future TradeBook updates will appear here.</p>
+      </div>
+    </div>
+  </section>
+
+  <main class="app-container">
+    <section id="intradayWorkspace" class="workspace">
+      <nav class="main-nav">
+        <button class="nav-btn active" data-section="dashboardSection">Dashboard</button>
+        <button class="nav-btn" data-section="tradeFormSection">Add Trade</button>
+        <button class="nav-btn" data-section="tradeJournalSection">Journal</button>
+        <button class="nav-btn" data-section="periodOverviewSection">Period Overview</button>
+        <button class="nav-btn" data-section="reportsSection">Reports &amp; Analytics</button>
+        <button class="nav-btn" data-section="fieldManagerSection">Field Manager</button>
+        
+      </nav>
+
+      <section id="dashboardSection" class="page-section active">
+        <div class="section-heading"><div><h2>Dashboard</h2></div></div>
+        <div class="stats-grid dashboard-stats">
+          <article class="stat-card"><span>Total Trades</span><strong id="dashTotalTrades">0</strong></article>
+          <article class="stat-card"><span>Winning Trades</span><strong id="dashWins">0</strong></article>
+          <article class="stat-card"><span>Losing Trades</span><strong id="dashLosses">0</strong></article>
+          <article class="stat-card"><span>Win Rate</span><strong id="dashWinRate">0%</strong></article>
+          <article class="stat-card"><span>Loss Rate</span><strong id="dashLossRate">0%</strong></article>
+          <article class="stat-card"><span>Gross Profit</span><strong id="dashGrossPL">₹0.00</strong></article>
+          <article class="stat-card"><span>Total Charges</span><strong id="dashCharges">₹0.00</strong></article>
+          <article class="stat-card"><span>Net Profit</span><strong id="dashNetPL">₹0.00</strong></article>
+        </div>
+      </section>
+
+      <section id="tradeFormSection" class="page-section">
+        <div class="section-heading"><div><h2 id="tradeFormTitle">Add Trade</h2><p>Enter your trade details below</p></div></div>
+        <form id="tradeForm">
+          <input type="hidden" id="tradeId">
+          <div class="form-panel"><h3>Trade Details</h3><div class="form-grid" id="basicFieldsContainer"></div><div id="customBasicFields"></div></div>
+
+          <div class="form-panel"><h3>Buy Details</h3><div class="form-grid" id="buyFieldsContainer"></div><div id="customBuyFields"></div></div>
+
+          <div class="form-panel"><h3>Sell Details</h3><div class="form-grid" id="sellFieldsContainer"></div><div id="customSellFields"></div></div>
+
+          <div class="form-panel"><h3>Profit &amp; Loss</h3><div class="form-grid" id="plFieldsContainer"></div><div id="customPLFields"></div></div>
+
+          <div class="form-panel"><h3>Notes &amp; Attachments</h3><div class="form-grid" id="attachmentFieldsContainer"></div><div id="customAttachmentFields"></div></div>
+          <div class="form-actions"><button type="submit" id="saveTradeBtn" class="primary-btn">Save Trade</button><button type="button" id="resetTradeBtn" class="secondary-btn">Reset</button></div>
+        </form>
+
+      </section>
+
+      <section id="tradeJournalSection" class="page-section">
+        <div class="section-heading"><div><h2>Trade Journal</h2><p>View, edit and manage your trades</p></div>
+          <div class="export-menu-wrap">
+            <button id="exportJournalBtn" type="button" class="secondary-btn export-menu-trigger">Export ▾</button>
+            <div id="exportJournalMenu" class="export-menu hidden">
+              <button type="button" data-export-action="journal-csv">Export CSV</button>
+              <button type="button" data-export-action="journal-pdf">Export PDF</button>
+            </div>
+          </div>
+        </div>
+        <div class="toolbar"><input id="journalSearch" type="search" placeholder="Search stock, voucher or notes..."><span id="journalTradeCount">0 trades</span></div>
+        <div class="table-wrap"><table><thead id="journalHead"></thead><tbody id="journalBody"><tr><td class="empty-cell">No trades recorded yet.</td></tr></tbody></table></div>
+      </section>
+
+      <section id="periodOverviewSection" class="page-section">
+        <div class="section-heading"><div><h2>Period Overview</h2><p>Review performance within a selected date range</p></div></div>
+        <div class="panel"><div class="form-grid period-filter">
+          <label>Start Date<input type="date" id="periodStartDate"></label><label>End Date<input type="date" id="periodEndDate"></label>
+          <div class="filter-actions"><button id="periodApplyBtn" type="button" class="primary-btn">Apply</button><button id="periodResetBtn" type="button" class="secondary-btn">Reset</button></div>
+        </div><p id="periodMessage" class="muted-text"></p><div class="stats-grid">
+          <article class="stat-card"><span>Gross P&amp;L</span><strong id="periodGrossPL">₹0.00</strong></article>
+          <article class="stat-card"><span>Total Charges</span><strong id="periodTotalCharges">₹0.00</strong></article>
+          <article class="stat-card"><span>Net P&amp;L</span><strong id="periodNetPL">₹0.00</strong></article>
+        </div></div>
+      </section>
+
+      <section id="reportsSection" class="page-section">
+        <div class="section-heading"><div><h2>Reports &amp; Analytics</h2><p>Manually maintain your trading reports</p></div></div>
+        <div class="report-tabs"><button class="report-tab active" data-report-period="daily">Daily</button><button class="report-tab" data-report-period="weekly">Weekly</button><button class="report-tab" data-report-period="monthly">Monthly</button><button class="report-tab" data-report-period="yearly">Yearly</button></div>
+
+<div class="broker-sheet-toolbar report-toolbar">
+  <div class="broker-format-group">
+    <label>Text Color<button type="button" class="color-tool-btn" id="reportTextColorBtn"><span class="color-swatch" id="reportTextColorSwatch"></span><span>Choose Color</span></button><input type="color" id="reportTextColor" value="#edf3fc" hidden></label>
+    <label>Cell Background<button type="button" class="color-tool-btn" id="reportCellColorBtn"><span class="color-swatch" id="reportCellColorSwatch"></span><span>Choose Color</span></button><input type="color" id="reportCellColor" value="#111c2e" hidden></label>
+    <label>Font Size<select id="reportFontSize"><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option></select></label>
+    <label>Font Family<select id="reportFontFamily"><option value="Arial">Arial</option><option value="Verdana">Verdana</option><option value="Georgia">Georgia</option><option value="Tahoma">Tahoma</option><option value="monospace">Monospace</option></select></label>
+  </div>
+  <div class="broker-format-group">
+    <button type="button" id="reportBoldBtn" class="format-btn"><b>B</b></button>
+    <button type="button" id="reportItalicBtn" class="format-btn"><i>I</i></button>
+    <div class="sheet-icon-group" role="group" aria-label="Horizontal alignment">
+      <button type="button" class="sheet-icon-btn" data-report-halign="left" title="Align left" aria-label="Align left"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M10 14h42M10 26h28M10 38h42M10 50h30"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn active" data-report-halign="center" title="Align center" aria-label="Align center"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M10 14h44M17 26h30M10 38h44M17 50h30"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn" data-report-halign="right" title="Align right" aria-label="Align right"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M12 14h42M26 26h28M12 38h42M24 50h30"/></g></svg></button>
+    </div>
+    <div class="sheet-icon-group" role="group" aria-label="Vertical alignment">
+      <button type="button" class="sheet-icon-btn" data-report-valign="top" title="Align top" aria-label="Align top"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 52V16M20 28l12-12 12 12"/><path d="M14 54h36"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn active" data-report-valign="middle" title="Align middle" aria-label="Align middle"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 10v18M20 22l12 12 12-12M32 54V36M20 46l12-12 12 12"/><path d="M10 34h44"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn" data-report-valign="bottom" title="Align bottom" aria-label="Align bottom"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 12v36M20 36l12 12 12-12"/><path d="M14 10h36"/></g></svg></button>
+    </div>
+    <button type="button" id="reportWrapBtn" class="format-btn">Wrap</button>
+    
+    <button type="button" id="reportSaveAllBtn" class="primary-btn">Save</button>
+  </div>
+</div>
+
+<div id="reportColumnToolbar" class="broker-sheet-actions report-toolbar sheet-actions-grid">
+  <div class="sheet-action-icon-row">
+    <span class="history-button-group" aria-label="Undo and Redo controls">
+      <button type="button" id="reportUndoBtn" class="sheet-icon-btn history-icon-btn" title="Undo" aria-label="Undo"><svg class="sheet-inline-icon history-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M12 24h26c10 0 16 6 16 14s-6 14-16 14H24" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"/><path d="M12 24l12-12M12 24l12 12" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="reportRedoBtn" class="sheet-icon-btn history-icon-btn" title="Redo" aria-label="Redo"><svg class="sheet-inline-icon history-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M52 24H26c-10 0-16 6-16 14s6 14 16 14h14" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"/><path d="M52 24L40 12M52 24L40 36" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </span>
+    <button type="button" id="reportInsertColumnBtn" class="sheet-icon-btn" title="Insert column between selected and next column" aria-label="Insert column between selected and next column"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="10" width="16" height="44" rx="2"/><rect x="38" y="10" width="16" height="44" rx="2"/>
+<path d="M32 24v16M25 32h14"/>
+</g></svg></button>
+    <button type="button" id="reportInsertRowBtn" class="sheet-icon-btn" title="Insert row between selected and next row" aria-label="Insert row between selected and next row"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="10" width="44" height="14" rx="2"/><rect x="10" y="40" width="44" height="14" rx="2"/>
+<path d="M24 32h16M32 25v14"/>
+</g></svg></button>
+    <button type="button" id="reportMergeBtn" class="sheet-icon-btn" title="Merge selected cells" aria-label="Merge selected cells"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8 20h16M40 20h16M8 44h16M40 44h16"/><path d="M16 32h32"/>
+<path d="M26 26l-10 6 10 6M38 26l10 6-10 6"/>
+</g></svg></button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="reportAddRowBtn" class="primary-btn">+ Add Row</button>
+    <button type="button" id="reportDeleteRowBtn" class="secondary-btn">Delete Selected Row</button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="reportAddColumnBtn" class="primary-btn">+ Add Column</button>
+    <button type="button" id="reportEditColumnBtn" class="secondary-btn">Edit Selected Column</button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="reportDeleteColumnBtn" class="danger-btn">Delete Selected Column</button>
+    <div class="export-menu-wrap">
+      <button type="button" id="reportExportBtn" class="secondary-btn export-menu-trigger" title="Export" aria-label="Export">Export ▾</button>
+      <div id="reportExportMenu" class="export-menu hidden">
+        <button type="button" data-export-action="report-csv">Export CSV</button>
+        <button type="button" data-export-action="report-pdf">Export PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+        <div id="reportTableContainer" class="report-table-container"></div>
+      </section>
+
+      <section id="fieldManagerSection" class="page-section">
+        <div class="section-heading"><div><h2>Field Manager</h2><p>Manage journal columns and custom fields</p></div><button id="addFieldBtn" class="primary-btn">+ Add Custom Field</button></div>
+        <div class="panel"><div id="fieldManagerList"></div></div>
+      </section>
+    </section>
+
+    <section id="swingWorkspace" class="workspace hidden">
+      <div class="section-heading"><div><h2>Swing Trading</h2><p>Swing trade journal</p></div></div>
+      <nav class="main-nav mode-dashboard-nav"><button class="nav-btn active" type="button" data-mode-dashboard="swingDashboardSection">Dashboard</button><button class="nav-btn" type="button" data-section="tradeFormSection">Add Trade</button><button class="nav-btn" type="button" data-section="tradeJournalSection">Journal</button><button class="nav-btn" type="button" data-section="periodOverviewSection">Period Overview</button><button class="nav-btn" type="button" data-section="reportsSection">Reports &amp; Analytics</button><button class="nav-btn" type="button" data-section="fieldManagerSection">Field Manager</button></nav>
+      <section id="swingDashboardSection" class="page-section active mode-dashboard-section">
+        <div class="section-heading"><div><h2>Dashboard</h2></div></div>
+        <div class="stats-grid dashboard-stats">
+          <article class="stat-card"><span>Total Trades</span><strong id="swingDashTotalTrades">0</strong></article>
+          <article class="stat-card"><span>Winning Trades</span><strong id="swingDashWins">0</strong></article>
+          <article class="stat-card"><span>Losing Trades</span><strong id="swingDashLosses">0</strong></article>
+          <article class="stat-card"><span>Win Rate</span><strong id="swingDashWinRate">0%</strong></article>
+          <article class="stat-card"><span>Loss Rate</span><strong id="swingDashLossRate">0%</strong></article>
+          <article class="stat-card"><span>Gross Profit</span><strong id="swingDashGrossPL">₹0.00</strong></article>
+          <article class="stat-card"><span>Total Charges</span><strong id="swingDashCharges">₹0.00</strong></article>
+          <article class="stat-card"><span>Net Profit</span><strong id="swingDashNetPL">₹0.00</strong></article>
+        </div>
+      </section>
+    </section>
+    <section id="longtermWorkspace" class="workspace hidden">
+      <div class="section-heading"><div><h2>Long Term Trading</h2><p>Long-term investment journal</p></div></div>
+      <nav class="main-nav mode-dashboard-nav"><button class="nav-btn active" type="button" data-mode-dashboard="longtermDashboardSection">Dashboard</button><button class="nav-btn" type="button" data-section="tradeFormSection">Add Trade</button><button class="nav-btn" type="button" data-section="tradeJournalSection">Journal</button><button class="nav-btn" type="button" data-section="periodOverviewSection">Period Overview</button><button class="nav-btn" type="button" data-section="reportsSection">Reports &amp; Analytics</button><button class="nav-btn" type="button" data-section="fieldManagerSection">Field Manager</button></nav>
+      <section id="longtermDashboardSection" class="page-section active mode-dashboard-section">
+        <div class="section-heading"><div><h2>Dashboard</h2></div></div>
+        <div class="stats-grid dashboard-stats">
+          <article class="stat-card"><span>Total Trades</span><strong id="longtermDashTotalTrades">0</strong></article>
+          <article class="stat-card"><span>Winning Trades</span><strong id="longtermDashWins">0</strong></article>
+          <article class="stat-card"><span>Losing Trades</span><strong id="longtermDashLosses">0</strong></article>
+          <article class="stat-card"><span>Win Rate</span><strong id="longtermDashWinRate">0%</strong></article>
+          <article class="stat-card"><span>Loss Rate</span><strong id="longtermDashLossRate">0%</strong></article>
+          <article class="stat-card"><span>Gross Profit</span><strong id="longtermDashGrossPL">₹0.00</strong></article>
+          <article class="stat-card"><span>Total Charges</span><strong id="longtermDashCharges">₹0.00</strong></article>
+          <article class="stat-card"><span>Net Profit</span><strong id="longtermDashNetPL">₹0.00</strong></article>
+        </div>
+      </section>
+    </section>
+
+
+    <section id="brokerWorkspace" class="workspace hidden">
+      <div class="section-heading"><div><h2>Broker</h2><p>Broker Transactions</p></div></div>
+
+<div class="broker-sheet-toolbar report-toolbar">
+  <div class="report-format-group">
+    <label>Text Color<button type="button" class="color-tool-btn" id="brokerTextColorBtn"><span class="color-swatch" id="brokerTextColorSwatch"></span><span>Choose Color</span></button><input type="color" id="brokerTextColor" value="#edf3fc" hidden></label>
+    <label>Cell Background<button type="button" class="color-tool-btn" id="brokerCellColorBtn"><span class="color-swatch" id="brokerCellColorSwatch"></span><span>Choose Color</span></button><input type="color" id="brokerCellColor" value="#111c2e" hidden></label>
+    <label>Font Size<select id="brokerFontSize"><option value="12">12</option><option value="14" selected>14</option><option value="16">16</option><option value="18">18</option><option value="20">20</option></select></label>
+    <label>Font Family<select id="brokerFontFamily"><option value="Arial">Arial</option><option value="Verdana">Verdana</option><option value="Georgia">Georgia</option><option value="Tahoma">Tahoma</option><option value="monospace">Monospace</option></select></label>
+  </div>
+  <div class="report-format-group">
+    <button type="button" id="brokerBoldBtn" class="format-btn"><b>B</b></button>
+    <button type="button" id="brokerItalicBtn" class="format-btn"><i>I</i></button>
+    <div class="sheet-icon-group" role="group" aria-label="Horizontal alignment">
+      <button type="button" class="sheet-icon-btn" data-broker-halign="left" title="Align left" aria-label="Align left"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M10 14h42M10 26h28M10 38h42M10 50h30"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn active" data-broker-halign="center" title="Align center" aria-label="Align center"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M10 14h44M17 26h30M10 38h44M17 50h30"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn" data-broker-halign="right" title="Align right" aria-label="Align right"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"><path d="M12 14h42M26 26h28M12 38h42M24 50h30"/></g></svg></button>
+    </div>
+    <div class="sheet-icon-group" role="group" aria-label="Vertical alignment">
+      <button type="button" class="sheet-icon-btn" data-broker-valign="top" title="Align top" aria-label="Align top"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 52V16M20 28l12-12 12 12"/><path d="M14 54h36"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn active" data-broker-valign="middle" title="Align middle" aria-label="Align middle"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 10v18M20 22l12 12 12-12M32 54V36M20 46l12-12 12 12"/><path d="M10 34h44"/></g></svg></button>
+      <button type="button" class="sheet-icon-btn" data-broker-valign="bottom" title="Align bottom" aria-label="Align bottom"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"><path d="M32 12v36M20 36l12 12 12-12"/><path d="M14 10h36"/></g></svg></button>
+    </div>
+    <button type="button" id="brokerWrapBtn" class="format-btn">Wrap</button>
+    
+    <button type="button" id="brokerSaveBtn" class="primary-btn">Save</button>
+  </div>
+</div>
+
+<div class="broker-sheet-actions report-toolbar sheet-actions-grid">
+  <div class="sheet-action-icon-row">
+    <span class="history-button-group" aria-label="Undo and Redo controls">
+      <button type="button" id="brokerUndoBtn" class="sheet-icon-btn history-icon-btn" title="Undo" aria-label="Undo"><svg class="sheet-inline-icon history-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M12 24h26c10 0 16 6 16 14s-6 14-16 14H24" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"/><path d="M12 24l12-12M12 24l12 12" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+      <button type="button" id="brokerRedoBtn" class="sheet-icon-btn history-icon-btn" title="Redo" aria-label="Redo"><svg class="sheet-inline-icon history-inline-icon" viewBox="0 0 64 64" aria-hidden="true"><path d="M52 24H26c-10 0-16 6-16 14s6 14 16 14h14" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round"/><path d="M52 24L40 12M52 24L40 36" fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+    </span>
+    <button type="button" id="brokerInsertColumnBtn" class="sheet-icon-btn" title="Insert column between selected and next column" aria-label="Insert column between selected and next column"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="10" width="16" height="44" rx="2"/><rect x="38" y="10" width="16" height="44" rx="2"/>
+<path d="M32 24v16M25 32h14"/>
+</g></svg></button>
+    <button type="button" id="brokerInsertRowBtn" class="sheet-icon-btn" title="Insert row between selected and next row" aria-label="Insert row between selected and next row"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<rect x="10" y="10" width="44" height="14" rx="2"/><rect x="10" y="40" width="44" height="14" rx="2"/>
+<path d="M24 32h16M32 25v14"/>
+</g></svg></button>
+    <button type="button" id="brokerMergeBtn" class="sheet-icon-btn" title="Merge selected cells" aria-label="Merge selected cells"><svg class="sheet-inline-icon" viewBox="0 0 64 64" aria-hidden="true">
+<g fill="none" stroke="#f2edf2" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+<path d="M8 20h16M40 20h16M8 44h16M40 44h16"/><path d="M16 32h32"/>
+<path d="M26 26l-10 6 10 6M38 26l10 6-10 6"/>
+</g></svg></button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="brokerAddRowBtn" class="primary-btn">+ Add Row</button>
+    <button type="button" id="brokerDeleteRowBtn" class="secondary-btn">Delete Selected Row</button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="brokerAddColumnBtn" class="primary-btn">+ Add Column</button>
+    <button type="button" id="brokerEditColumnBtn" class="secondary-btn">Edit Selected Column</button>
+  </div>
+  <div class="sheet-action-row">
+    <button type="button" id="brokerDeleteColumnBtn" class="danger-btn">Delete Selected Column</button>
+    <div class="export-menu-wrap">
+      <button type="button" id="brokerExportBtn" class="secondary-btn export-menu-trigger" title="Export" aria-label="Export">Export ▾</button>
+      <div id="brokerExportMenu" class="export-menu hidden">
+        <button type="button" data-export-action="broker-csv">Export CSV</button>
+        <button type="button" data-export-action="broker-pdf">Export PDF</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+      <span id="brokerMessage" class="muted-text"></span>
+      <div id="brokerTableContainer" class="report-table-container broker-table-container"></div>
+    </section>
+
+    <section id="graphChartSection" class="page-section graph-chart-section hidden" data-top-level-page="graph">
+      <div class="section-heading graph-heading">
+        <div>
+          <h2>Graph / Chart</h2>
+          <p>Trading Performance – Gross P/L vs Net P/L</p>
+        </div>
+      </div>
+
+      <div class="graph-panel">
+        <div class="graph-mode-tabs" id="graphModeTabs">
+          <button type="button" class="graph-choice active" data-graph-mode="intraday">Intraday Trading</button>
+          <button type="button" class="graph-choice" data-graph-mode="swing">Swing Trading</button>
+          <button type="button" class="graph-choice" data-graph-mode="longterm">Long Term Trading</button>
+        </div>
+
+        <div class="graph-controls">
+          <div class="graph-control-block">
+            <label>Chart Type</label>
+            <div class="graph-toggle">
+              <button type="button" class="graph-choice active" data-chart-type="bar">Bar Chart</button>
+              <button type="button" class="graph-choice" data-chart-type="line">Line Chart</button>
+            </div>
+          </div>
+
+          <div class="graph-control-block period-block">
+            <label>Period</label>
+            <div class="graph-toggle">
+              <button type="button" class="graph-choice active" data-graph-period="month">Month</button>
+              <button type="button" class="graph-choice" data-graph-period="year">Year</button>
+            </div>
+          </div>
+
+          <div class="graph-control-block range-block" id="graphBarRangeBlock">
+            <label id="graphRangeLabel">Select Range</label>
+            <select id="graphRangeSelect" aria-label="Select range"></select>
+          </div>
+
+          <div class="graph-control-block line-year-block hidden" id="graphLineYearBlock">
+            <label>Select Year</label>
+            <select id="graphYearSelect" aria-label="Select year"></select>
+          </div>
+
+          <div class="graph-control-block line-month-block hidden" id="graphLineMonthBlock">
+            <label>Select Month</label>
+            <select id="graphMonthSelect" aria-label="Select month"></select>
+          </div>
+        </div>
+
+        <div class="graph-actions">
+          <button type="button" id="exportGraphPdfBtn" class="graph-pdf-btn">Export as PDF</button>
+        </div>
+
+        <div id="graphResult" class="graph-result">
+          <div class="graph-placeholder">
+            <strong>Bar Chart</strong>
+            <span>The chart updates automatically when your trading data changes.</span>
+          </div>
+        </div>
+
+        <div class="graph-summary">
+          <div id="graphGrossSummary"><span>Total Gross Profit &amp; Loss</span><strong id="graphGrossTotal">₹ 0.00</strong></div>
+          <div><span>Total Net Profit &amp; Loss</span><strong id="graphNetTotal">₹ 0.00</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="backupWorkspace" class="workspace hidden">
+      <div class="section-heading"><div><h2>Google Drive Backup</h2><p>Securely back up and restore your TradeBook data</p></div></div>
+      <div class="panel backup-panel"><div class="drive-status-row"><div><h3>Google Drive Connection</h3><p id="driveStatus" class="muted-text">Not connected</p></div><div class="button-group"><button id="connectDriveBtn" class="primary-btn">Connect Google Drive</button><button id="disconnectDriveBtn" class="secondary-btn" disabled>Disconnect</button></div></div>
+        <div class="divider"></div><h3>Backup</h3><p class="muted-text">Save all trades, custom fields, report tables and settings to your Google Drive backup file.</p><button id="driveBackupBtn" class="primary-btn" disabled>Backup to Drive</button>
+        <div class="divider"></div><h3>Restore</h3><p class="muted-text">Restore replaces the current TradeBook data with the data in your Drive backup.</p><label>Restore Method<input type="text" value="Full Restore" readonly></label><button id="restoreDriveBackupBtn" class="danger-btn" disabled>Restore from Google Drive</button><p id="driveBackupInfo" class="muted-text"></p><div id="driveMessage" class="message-area"></div><div id="driveBackupList"></div>
+      </div>
+    </section>
+
+    <section id="installWorkspace" class="workspace hidden">
+      <div class="section-heading install-heading"><div><h2>Install App</h2></div></div>
+      <div class="install-app-area">
+        <button id="installAppBtn" class="primary-btn install-app-btn" type="button">Install App</button>
+      </div>
+    </section>
+  </main>
+
+  <div id="fieldManagerModal" class="modal hidden"><div class="modal-card"><div class="modal-heading"><h2 id="fieldModalTitle">Add Custom Field</h2><button type="button" id="closeFieldManagerModal" class="icon-btn">×</button></div>
+    <form id="fieldForm"><input type="hidden" id="fieldId"><label>Field ID<input type="text" id="fieldCustomId" placeholder="e.g. setupType" pattern="[A-Za-z0-9_-]+"><small class="muted-text">Custom field IDs can be edited. Standard IDs are fixed.</small></label><label>Column Heading<input type="text" id="fieldName" required></label><label>Example / Placeholder<input type="text" id="fieldPlaceholder"></label>
+      <label>Field Type<select id="fieldType"><option value="text">Text</option><option value="number">Number</option><option value="date">Date</option><option value="textarea">Long Text</option><option value="select">Dropdown</option></select></label>
+      <label>Section<select id="fieldSection"><option value="basic">Trade Details</option><option value="buy">Buy Details</option><option value="sell">Sell Details</option><option value="pl">Profit &amp; Loss</option><option value="attachments">Notes &amp; Attachments</option></select></label>
+      <label>Dropdown Options (comma separated)<input type="text" id="fieldOptions"></label><label>Position<input type="number" id="fieldPosition" min="1" value="1"></label>
+      <label class="checkbox-label"><input type="checkbox" id="fieldInForm" checked> Show in trade form</label><label class="checkbox-label"><input type="checkbox" id="fieldRequired"> Required field</label>
+      <div class="form-actions"><button type="submit" class="primary-btn">Save Field</button><button type="button" id="cancelFieldEdit" class="secondary-btn">Cancel</button></div>
+    </form></div></div>
+
+  <div id="viewModal" class="modal hidden"><div class="modal-card large-modal"><div class="modal-heading"><h2>Trade Details</h2><button type="button" id="closeViewBtn" class="icon-btn">×</button></div><div id="viewTradeContent"></div></div></div>
+  <div id="confirmModal" class="modal hidden"><div class="modal-card"><h3 id="confirmTitle">Confirm Action</h3><p id="confirmMessage"></p><div class="form-actions"><button id="confirmYesBtn" class="danger-btn">Confirm</button><button id="confirmNoBtn" class="secondary-btn">Cancel</button></div></div></div>
+  <div id="toast" class="toast" role="status"></div>
+  <script src="brevo-config.js?v=20261126-tradebook-bugfix-v11"></script>
+  <script src="app.js?v=20261126-tradebook-bugfix-v11"></script>
+  <script>
+    /* ==========================================================
+       GUARANTEED MOBILE NAVIGATION BRIDGE
+       This listener is intentionally outside app.js. If any optional
+       app module throws during startup, the core Home/Menu navigation
+       must still work.
+    ========================================================== */
+    (() => {
+      if (window.__tradeBookNavBridge) return;
+      window.__tradeBookNavBridge = true;
+
+      const hide = el => {
+        if (!el) return;
+        el.classList.add('hidden');
+        el.classList.remove('active');
+      };
+      const show = el => {
+        if (!el) return;
+        el.classList.remove('hidden');
+        el.classList.add('active');
+      };
+
+      function basicWorkspace(mode) {
+        const home = document.getElementById('tradeBookHome');
+        hide(home);
+        document.body.classList.remove('tradebook-home-active');
+
+        document.querySelectorAll('.workspace').forEach(hide);
+        hide(document.getElementById('graphChartSection'));
+
+        const map = {
+          intraday: 'intradayWorkspace',
+          swing: 'swingWorkspace',
+          longterm: 'longtermWorkspace',
+          broker: 'brokerWorkspace',
+          backup: 'backupWorkspace',
+          install: 'installWorkspace'
+        };
+        const id = map[mode];
+        const ws = id ? document.getElementById(id) : null;
+        if (ws) show(ws);
+
+        if (mode === 'intraday') {
+          basicSection('dashboardSection');
+        } else if (mode === 'swing') {
+          basicSection('swingDashboardSection');
+        } else if (mode === 'longterm') {
+          basicSection('longtermDashboardSection');
+        } else if (mode === 'graph') {
+          hide(ws);
+          show(document.getElementById('graphChartSection'));
+        }
+      }
+
+      function basicSection(sectionId) {
+        const target = document.getElementById(sectionId);
+        if (!target) return;
+        const ws = target.closest('.workspace');
+        if (ws) {
+          ws.querySelectorAll('.page-section').forEach(hide);
+        } else {
+          document.querySelectorAll('.page-section').forEach(hide);
+        }
+        show(target);
+      }
+
+      document.addEventListener('click', event => {
+        const homeMode = event.target.closest('[data-home-mode]');
+        if (homeMode) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const mode = homeMode.dataset.homeMode;
+          try {
+            if (typeof window.setTradingMode === 'function') {
+              window.setTradingMode(mode);
+            } else {
+              basicWorkspace(mode);
+            }
+          } catch (error) {
+            console.error('TradeBook navigation error:', error);
+            basicWorkspace(mode);
+          }
+          return;
+        }
+
+        const nav = event.target.closest('.nav-btn');
+        if (nav) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const sectionId = nav.dataset.section || nav.dataset.modeDashboard;
+          try {
+            if (sectionId && typeof window.showSection === 'function') {
+              window.showSection(sectionId);
+            } else if (sectionId) {
+              basicSection(sectionId);
+            }
+          } catch (error) {
+            console.error('TradeBook section navigation error:', error);
+            if (sectionId) basicSection(sectionId);
+          }
+          return;
+        }
+
+        const menu = event.target.closest('#openDrawerBtn');
+        if (menu) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          try {
+            if (typeof window.openDrawer === 'function') window.openDrawer();
+            else {
+              document.getElementById('sideDrawer')?.classList.remove('hidden');
+              document.getElementById('drawerBackdrop')?.classList.remove('hidden');
+            }
+          } catch (error) {
+            document.getElementById('sideDrawer')?.classList.remove('hidden');
+            document.getElementById('drawerBackdrop')?.classList.remove('hidden');
+          }
+          return;
+        }
+
+        const close = event.target.closest('#closeDrawerBtn,#drawerBackdrop');
+        if (close) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          document.getElementById('sideDrawer')?.classList.add('hidden');
+          document.getElementById('drawerBackdrop')?.classList.add('hidden');
+          return;
+        }
+
+        const drawerAction = event.target.closest('[data-drawer-action]');
+        if (drawerAction) {
+          event.preventDefault();
+          event.stopImmediatePropagation();
+          const action = drawerAction.dataset.drawerAction;
+          document.getElementById('sideDrawer')?.classList.add('hidden');
+          document.getElementById('drawerBackdrop')?.classList.add('hidden');
+          try {
+            if (action === 'settings' && typeof window.openSettings === 'function') window.openSettings();
+            else if (action === 'home' && typeof window.showTradeBookHome === 'function') window.showTradeBookHome();
+            else if (action === 'home') {
+              document.querySelectorAll('.workspace').forEach(hide);
+              hide(document.getElementById('graphChartSection'));
+              document.getElementById('tradeBookHome')?.classList.remove('hidden');
+              document.body.classList.add('tradebook-home-active');
+            }
+          } catch (error) {
+            console.error('TradeBook drawer navigation error:', error);
+          }
+        }
+      }, true);
+    })();
+  </script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      window.addEventListener("load", () => {
+        navigator.serviceWorker.register("./service-worker.js?v=20261126-tradebook-login-otp-v9", { scope: "./" })
+          .catch(err => console.warn("TradeBook service worker registration failed:", err));
+      });
+    }
+  </script>
+</body>
+</html>
